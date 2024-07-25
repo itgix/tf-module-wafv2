@@ -76,6 +76,27 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
         managed_rule_group_statement {
           name        = rule.value.name
           vendor_name = "AWS"
+
+          rule_action_override {
+            action_to_use {
+              # count {}
+              dynamic "count" {
+                for_each = rule.value.action_override == "count" ? [""] : []
+                content {}
+              }
+
+              dynamic "allow" {
+                for_each = rule.value.action_override == "allow" ? [""] : []
+                content {}
+              }
+              dynamic "none" {
+                for_each = rule.value.action_override == "none" ? [""] : []
+                content {}
+              }
+            }
+
+            name = rule.value.rule_action_override
+          }
         }
       }
 
