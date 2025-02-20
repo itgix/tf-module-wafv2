@@ -52,6 +52,34 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     }
   }
 
+rule {
+    name     = "Allow-SizeRestrictions_BODY"
+    priority = 1
+
+
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+
+        rule_action_override {
+          action_to_use {
+            allow {}
+          }
+
+          name = "SizeRestrictions_BODY"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = false
+      metric_name                = "Allow-SizeRestrictions_BODY"
+      sampled_requests_enabled   = false
+        } 
+  }
+
+
   dynamic "rule" {
     for_each = toset(var.aws_managed_waf_rule_groups)
 
