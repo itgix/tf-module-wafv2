@@ -71,7 +71,7 @@ variable "waf_geo_location_block_enforce" {
   description = "allow or block - action to take on geo location list of countries"
 }
 
-variable "rules" " {
+variable "rules" {
   description = "List of WAF rules."
   type        = any
   default     = []
