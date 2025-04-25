@@ -53,33 +53,39 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   }
 
 
- dynamic "rule" {
-  for_each = var.rules
-  content {
-    name     = lookup(rule.value, "name")
-    priority = lookup(rule.value, "priority")
-   
-      action {
-        allow {}
-      }
-    statement {
-      size_constraint_statement  {
-        comparison_operator = "GT"
-        size                = 5242881
+dynamic "rule" {
+  for_each = var.custom_waf_rules
 
-        text_transformation {
-          priority = 1
-          type     = "NONE"
-        }
+  content {
+    name     = rule.value.name
+    priority = rule.value.priority
+
+    action {
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [""] : []
+        content {}
+      }
+
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [""] : []
+        content {}
+      }
+
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [""] : []
+        content {}
+      }
+    }
+
+    statement = rule.value.statement
+
+    visibility_config {
+      cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+      metric_name                = rule.value.name
+      sampled_requests_enabled   = var.sampled_requests_enabled
     }
   }
- 
-    visibility_config {
-      cloudwatch_metrics_enabled = false
-      metric_name                = rule.value.name
-      sampled_requests_enabled   = false
-        } 
-  }
+}
  
 }
 
