@@ -84,61 +84,72 @@ variable "aws_managed_waf_rule_groups" {
     // Baseline rule groups
     {
       name     = "AWSManagedRulesAdminProtectionRuleSet"
-      priority = 1
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesCommonRuleSet"
       priority = 2
       action   = "none"
     },
     {
-      name     = "AWSManagedRulesKnownBadInputsRuleSet"
+      name     = "AWSManagedRulesCommonRuleSet"
       priority = 3
+      action   = "none"
+    },
+    {
+      name     = "AWSManagedRulesKnownBadInputsRuleSet"
+      priority = 4
       action   = "none"
     },
     // Use-case specific rule groups
     {
       name     = "AWSManagedRulesLinuxRuleSet"
-      priority = 4
+      priority = 5
       action   = "none"
     },
     {
       name     = "AWSManagedRulesSQLiRuleSet"
-      priority = 5
+      priority = 6
       action   = "none"
     }
     #{
     #name     = "AWSManagedRulesUnixRuleSet"
-    #priority = 6
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesPHPRuleSet"
     #priority = 7
     #action   = "none"
     #},
     #{
-    #name     = "AWSManagedRulesWordPressRuleSet"
+    #name     = "AWSManagedRulesPHPRuleSet"
     #priority = 8
+    #action   = "none"
+    #},
+    #{
+    #name     = "AWSManagedRulesWordPressRuleSet"
+    #priority = 9
     #action   = "none"
     #},
     #// IP Reputation Rule groups 
     #{
     #name     = "AWSManagedRulesAmazonIpReputationList"
-    #priority = 9
+    #priority = 10
     #action   = "none"
     #},
     #{
     #name     = "AWSManagedRulesAnonymousIpList"
-    #priority = 10
+    #priority = 11
     #action   = "none"
     #},
     #// Bot control rule group
     #{
     #name     = "AWSManagedRulesBotControlRuleSet"
-    #priority = 11
+    #priority = 12
     #action   = "none"
     #}
   ]
+}
+
+variable "custom_waf_rules" {
+  description = "List of custom WAF rules"
+  type = list(object({
+    name        = string
+    priority    = 1
+    action      = string
+    statement   = any
+  }))
+  default = []
 }
