@@ -147,7 +147,7 @@ variable "custom_waf_rules" {
   description = "List of custom WAF rules"
   type = list(object({
     name        = string
-    priority    = 1
+    priority    = number
     action      = string
     statement   = any
   }))
