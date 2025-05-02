@@ -148,10 +148,10 @@ variable "custom_waf_rules" {
   type = list(object({
     name             = string
     priority         = number
-    action           = string # "allow", "block", "count"
+    action           = string 
     match_conditions = list(object({
-      type       = string      # "uri_path", "body"
-      operator   = string      # "CONTAINS", "ENDS_WITH", "GT", etc.
+      type       = string     
+      operator   = string     
       value      = string
       transform  = optional(string, "NONE")
     }))
