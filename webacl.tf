@@ -53,41 +53,73 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   }
 
 
+# Custom WAF rules
 dynamic "rule" {
-  for_each = var.custom_waf_rules
+  for_each = { for waf_rule in var.custom_waf_rules : waf_rule.name => waf_rule }
 
   content {
     name     = rule.value.name
     priority = rule.value.priority
 
     action {
-      dynamic "allow" {
-        for_each = rule.value.action == "allow" ? [""] : []
-        content {}
-      }
-
       dynamic "block" {
-        for_each = rule.value.action == "block" ? [""] : []
+        for_each = rule.value.action == "block" ? [1] : []
         content {}
       }
 
-      dynamic "count" {
-        for_each = rule.value.action == "count" ? [""] : []
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [1] : []
         content {}
       }
     }
 
-    statement = rule.value.statement
+          statement {
+        and_statement {
+          dynamic "statement" {
+            for_each = rule.value.match_conditions
+            content {
+              dynamic "size_constraint_statement" {
+                for_each = statement.value.type == "body" ? [1] : []
+                content {
+                  comparison_operator = statement.value.operator
+                  size                = tonumber(statement.value.value)
+                  field_to_match {
+                    body {}
+                  }
+                  text_transformation {
+                    priority = 0
+                    type     = lookup(statement.value, "transform", "NONE")
+                  }
+                }
+              }
+
+              dynamic "byte_match_statement" {
+                for_each = statement.value.type == "uri_path" ? [1] : []
+                content {
+                  search_string         = statement.value.value
+                  positional_constraint = statement.value.operator
+                  field_to_match {
+                    uri_path {}
+                  }
+                  text_transformation {
+                    priority = 0
+                    type     = lookup(statement.value, "transform", "NONE")
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 
     visibility_config {
-      cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+      cloudwatch_metrics_enabled = true
       metric_name                = rule.value.name
-      sampled_requests_enabled   = var.sampled_requests_enabled
+      sampled_requests_enabled   = true
     }
   }
 }
- 
-}
+
 
   dynamic "rule" {
     for_each = toset(var.aws_managed_waf_rule_groups)

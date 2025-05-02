@@ -144,12 +144,17 @@ variable "aws_managed_waf_rule_groups" {
 }
 
 variable "custom_waf_rules" {
-  description = "List of custom WAF rules"
+  description = "Custom WAF rules with flexible match conditions"
   type = list(object({
-    name        = string
-    priority    = number
-    action      = string
-    statement   = any
+    name             = string
+    priority         = number
+    action           = string 
+    match_conditions = list(object({
+      type       = string      
+      operator   = string      
+      value      = string
+      transform  = optional(string, "NONE")
+    }))
   }))
   default = []
 }
