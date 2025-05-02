@@ -142,3 +142,19 @@ variable "aws_managed_waf_rule_groups" {
     #}
   ]
 }
+
+variable "custom_waf_rules" {
+  description = "Custom WAF rules with flexible match conditions"
+  type = list(object({
+    name             = string
+    priority         = number
+    action           = string # "allow", "block", "count"
+    match_conditions = list(object({
+      type       = string      # "uri_path", "body"
+      operator   = string      # "CONTAINS", "ENDS_WITH", "GT", etc.
+      value      = string
+      transform  = optional(string, "NONE")
+    }))
+  }))
+  default = []
+}
