@@ -158,3 +158,15 @@ variable "custom_waf_rules" {
   }))
   default = []
 }
+
+variable "custom_managed_waf_rule_groups" {
+  type = list(any)
+  default = [
+    {
+      name                    = "CustomManagedRuleSet"
+      priority                = 8
+      action                  = "none" # count (stop enforcing rule group) or none (let the rule group decide what action to take, i.e. enforcing)
+      rules_override_to_count = []
+    }
+  ]
+}

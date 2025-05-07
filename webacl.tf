@@ -166,6 +166,52 @@ dynamic "rule" {
     }
   }
 
+
+# Custom managed rule groups
+  dynamic "rule" {
+    for_each = toset(var.custom_managed_waf_rule_groups)
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+
+      override_action {
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [""] : []
+          content {}
+        }
+
+        dynamic "none" {
+          for_each = rule.value.action == "none" ? [""] : []
+          content {}
+        }
+      }
+
+      statement {
+        managed_rule_group_statement {
+          name        = rule.value.name
+          vendor_name = "custom"
+
+          dynamic "rule_action_override" {
+            for_each = [for rule_override in rule.value.rules_override_to_count : rule_override]
+            content {
+              name = rule_action_override.value
+              action_to_use {
+                count {}
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
+  
   # TODO: add options to handle, those rules additionally, they require specific additional configuration that cannot be handled with the current dynamic block
   #// AWS account creation fraud prevention rule group
   #{
