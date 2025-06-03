@@ -53,34 +53,71 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   }
 
 
- dynamic "rule" {
-  for_each = var.rules
-  content {
-    name     = lookup(rule.value, "name")
-    priority = lookup(rule.value, "priority")
-   
-      action {
-        allow {}
-      }
-    statement {
-      size_constraint_statement  {
-        comparison_operator = "GT"
-        size                = 5242881
+ # Custom WAF rules
+dynamic "rule" {
+  for_each = { for waf_rule in var.custom_waf_rules : waf_rule.name => waf_rule }
 
-        text_transformation {
-          priority = 1
-          type     = "NONE"
+  content {
+    name     = rule.value.name
+    priority = rule.value.priority
+
+    action {
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [1] : []
+        content {}
+      }
+
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [1] : []
+        content {}
+      }
+    }
+
+          statement {
+        and_statement {
+          dynamic "statement" {
+            for_each = rule.value.match_conditions
+            content {
+              dynamic "size_constraint_statement" {
+                for_each = statement.value.type == "body" ? [1] : []
+                content {
+                  comparison_operator = statement.value.operator
+                  size                = tonumber(statement.value.value)
+                  field_to_match {
+                    body {}
+                  }
+                  text_transformation {
+                    priority = 0
+                    type     = lookup(statement.value, "transform", "NONE")
+                  }
+                }
+              }
+
+              dynamic "byte_match_statement" {
+                for_each = statement.value.type == "uri_path" ? [1] : []
+                content {
+                  search_string         = statement.value.value
+                  positional_constraint = statement.value.operator
+                  field_to_match {
+                    uri_path {}
+                  }
+                  text_transformation {
+                    priority = 0
+                    type     = lookup(statement.value, "transform", "NONE")
+                  }
+                }
+              }
+            }
+          }
         }
+      }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = rule.value.name
+      sampled_requests_enabled   = true
     }
   }
- 
-    visibility_config {
-      cloudwatch_metrics_enabled = false
-      metric_name                = rule.value.name
-      sampled_requests_enabled   = false
-        } 
-  }
- 
 }
 
   dynamic "rule" {
@@ -129,6 +166,52 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     }
   }
 
+
+# Custom managed rule groups
+  dynamic "rule" {
+    for_each = toset(var.custom_managed_waf_rule_groups)
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+
+      override_action {
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [""] : []
+          content {}
+        }
+
+        dynamic "none" {
+          for_each = rule.value.action == "none" ? [""] : []
+          content {}
+        }
+      }
+
+      statement {
+        managed_rule_group_statement {
+          name        = rule.value.name
+          vendor_name = "custom"
+
+          dynamic "rule_action_override" {
+            for_each = [for rule_override in rule.value.rules_override_to_count : rule_override]
+            content {
+              name = rule_action_override.value
+              action_to_use {
+                count {}
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
+  
   # TODO: add options to handle, those rules additionally, they require specific additional configuration that cannot be handled with the current dynamic block
   #// AWS account creation fraud prevention rule group
   #{
