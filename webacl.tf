@@ -4,12 +4,11 @@ provider "aws" {
 }
 
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
-  count    = var.cloudfront_true ? 1 : 0
+  count       = var.cloudfront_true ? 1 : 0
   provider    = aws.virginia
   name        = "${var.project}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
-  cloudfront_true = var.cloudfront_true
   description = "Empty custom WAF rule group for CloudFront"
 
   visibility_config {
@@ -20,10 +19,9 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 }
 
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
-  count    = var.application_true ? 1 : 0
+  count       = var.application_true ? 1 : 0
   name        = "${var.project}-application-group-regional"
   scope       = "REGIONAL"
-  application_true = var.application_true
   capacity    = 50  # minimum capacity for empty rule group
   description = "Empty custom WAF rule group for Regional"
 
