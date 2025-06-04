@@ -1,4 +1,10 @@
+provider "aws" {
+  alias  = "virginia"
+  region = "us-east-1"
+}
+
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
+  provider    = aws.virginia
   name        = "${var.project}-custom-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
