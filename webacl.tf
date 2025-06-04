@@ -106,6 +106,11 @@ dynamic "rule" {
         for_each = rule.value.action == "allow" ? [1] : []
         content {}
       }
+    
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [1] : []
+        content {}
+      }
     }
 
           statement {
