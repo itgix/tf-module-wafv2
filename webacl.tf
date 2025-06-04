@@ -1,21 +1,35 @@
-resource "aws_wafv2_rule_group" "CustomManagedRuleSet" {
-  name     = "CustomManagedRuleSet"
-  scope    =  var.web_acl_scope
-  capacity = 50
+resource "aws_wafv2_rule_group" "custom_rule_group_global" {
+  name        = "${var.project}-custom-rule-group-global"
+  scope       = "CLOUDFRONT"
+  capacity    = 1  # minimum capacity for empty rule group
+  description = "Empty custom WAF rule group for CloudFront"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "CustomManagedRuleSet"
+    metric_name                = "${var.project}-customRuleGroupGlobal"
     sampled_requests_enabled   = true
   }
-
-  # No rule blocks defined inside – it's intentionally empty
 }
+
+resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
+  name        = "${var.project}-custom-rule-group-regional"
+  scope       = "REGIONAL"
+  capacity    = 1  # minimum capacity for empty rule group
+  description = "Empty custom WAF rule group for Regional"
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.project}-customRuleGroupRegional"
+    sampled_requests_enabled   = true
+  }
+}
+
 
 resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   count       = var.waf_enabled ? 1 : 0
   depends_on = [
-    aws_wafv2_rule_group.CustomManagedRuleSet
+    aws_wafv2_rule_group.custom_rule_group_global,
+    aws_wafv2_rule_group.custom_rule_group_regional,
   ]
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
   description = "Geo-Location blocking and Web Application Security firewall"
