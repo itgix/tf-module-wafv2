@@ -217,38 +217,38 @@ statement {
 
 
 # Custom managed rule groups
-#dynamic "rule" {
-#    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
+dynamic "rule" {
+    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
 
-#    content {
-#      name     = rule.value.name
-#      priority = rule.value.priority
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
 
-#      override_action {
-#        dynamic "count" {
-#          for_each = rule.value.action == "count" ? [""] : []
-#          content {}
-#        }
+      override_action {
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [""] : []
+          content {}
+        }
 
-#        dynamic "none" {
-#          for_each = rule.value.action == "none" ? [""] : []
-#          content {}
-#        }
-#      }
+        dynamic "none" {
+          for_each = rule.value.action == "none" ? [""] : []
+          content {}
+        }
+      }
 
-#      statement {
-#        rule_group_reference_statement {
-#          arn = rule.value.rule_group_arn
-#        }
-#      }
+      statement {
+        rule_group_reference_statement {
+          arn = rule.value.rule_group_arn
+        }
+      }
 
-#      visibility_config {
-#        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
-#        metric_name                = rule.value.name
-#        sampled_requests_enabled   = var.sampled_requests_enabled
-#    }
-#  }
-#}
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = var.sampled_requests_enabled
+    }
+  }
+}
 
 
 
