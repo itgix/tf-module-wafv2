@@ -1,3 +1,17 @@
+resource "aws_wafv2_rule_group" "CustomManagedRuleSet" {
+  name     = "CustomManagedRuleSet"
+  scope    =  var.web_acl_scope
+  capacity = 50
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "CustomManagedRuleSet"
+    sampled_requests_enabled   = true
+  }
+
+  # No rule blocks defined inside – it's intentionally empty
+}
+
 resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   count       = var.waf_enabled ? 1 : 0
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
@@ -168,8 +182,9 @@ dynamic "rule" {
 
 
 # Custom managed rule groups
-  dynamic "rule" {
-    for_each = toset(var.custom_managed_waf_rule_groups)
+dynamic "rule" {
+    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
+
     content {
       name     = rule.value.name
       priority = rule.value.priority
@@ -187,19 +202,8 @@ dynamic "rule" {
       }
 
       statement {
-        managed_rule_group_statement {
-          name        = rule.value.name
-          vendor_name = "custom"
-
-          dynamic "rule_action_override" {
-            for_each = [for rule_override in rule.value.rules_override_to_count : rule_override]
-            content {
-              name = rule_action_override.value
-              action_to_use {
-                count {}
-              }
-            }
-          }
+        rule_group_reference_statement {
+          arn = rule.value.rule_group_arn
         }
       }
 
@@ -207,9 +211,11 @@ dynamic "rule" {
         cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
         metric_name                = rule.value.name
         sampled_requests_enabled   = var.sampled_requests_enabled
-      }
     }
   }
+}
+
+
 
   
   # TODO: add options to handle, those rules additionally, they require specific additional configuration that cannot be handled with the current dynamic block
