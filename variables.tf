@@ -169,3 +169,15 @@ variable "custom_managed_waf_rule_groups" {
   }))
   default = []
 }
+
+variable "cloudfront_true" {
+  type    = bool
+  default = false
+  description = "Whether to create the CloudFront scoped WAF rule group"
+}
+
+variable "application_true" {
+  type    = bool
+  default = false
+  description = "Whether to create the Regional scoped WAF rule group"
+}
