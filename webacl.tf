@@ -1,7 +1,7 @@
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   name        = "${var.project}-custom-rule-group-global"
   scope       = "CLOUDFRONT"
-  capacity    = 1  # minimum capacity for empty rule group
+  capacity    = 50  # minimum capacity for empty rule group
   description = "Empty custom WAF rule group for CloudFront"
 
   visibility_config {
@@ -14,7 +14,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   name        = "${var.project}-custom-rule-group-regional"
   scope       = "REGIONAL"
-  capacity    = 1  # minimum capacity for empty rule group
+  capacity    = 50  # minimum capacity for empty rule group
   description = "Empty custom WAF rule group for Regional"
 
   visibility_config {
@@ -24,13 +24,17 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   }
 }
 
-
-resource "aws_wafv2_web_acl" "wafv2_web_acl" {
+resource "time_sleep" "wait_for_rule_groups" {
   depends_on = [
     aws_wafv2_rule_group.custom_rule_group_global,
-    aws_wafv2_rule_group.custom_rule_group_regional
+    aws_wafv2_rule_group.custom_rule_group_regional,
   ]
+  create_duration = "300s"
+}
+
+resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   count       = var.waf_enabled ? 1 : 0
+  depends_on = [time_sleep.wait_for_rule_groups]
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
   description = "Geo-Location blocking and Web Application Security firewall"
   scope       = var.web_acl_scope
