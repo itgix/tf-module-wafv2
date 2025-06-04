@@ -10,3 +10,8 @@ locals {
   ]
   effective_custom_managed_waf_rule_groups = length(var.custom_managed_waf_rule_groups) > 0 ? var.custom_managed_waf_rule_groups : local.default_custom_managed_rule_groups 
 }
+
+output "custom_managed_rule_group_arn" {
+  value = aws_wafv2_rule_group.CustomManagedRuleSet.arn
+  description = "ARN of the custom managed WAF rule group"
+}
