@@ -135,13 +135,12 @@ statement {
             }
           }
 
-          # Add other statement types here if needed
+          # Add other dynamic statement types here if needed
         }
       }
     }
   }
 
-  # Render single statement directly if only 1 match condition
   dynamic "size_constraint_statement" {
     for_each = length(rule.value.match_conditions) == 1 && rule.value.match_conditions[0].type == "BodySize" ? [1] : []
     content {
@@ -156,7 +155,10 @@ statement {
       }
     }
   }
+
+  # Add similar single-statement support for other match types if needed
 }
+
 
 
     visibility_config {
