@@ -26,11 +26,11 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
 
 
 resource "aws_wafv2_web_acl" "wafv2_web_acl" {
-  count       = var.waf_enabled ? 1 : 0
   depends_on = [
     aws_wafv2_rule_group.custom_rule_group_global,
-    aws_wafv2_rule_group.custom_rule_group_regional,
+    aws_wafv2_rule_group.custom_rule_group_regional
   ]
+  count       = var.waf_enabled ? 1 : 0
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
   description = "Geo-Location blocking and Web Application Security firewall"
   scope       = var.web_acl_scope
