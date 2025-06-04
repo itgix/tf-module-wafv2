@@ -27,11 +27,13 @@ locals {
     )
   ]
 
-  effective_custom_managed_waf_rule_groups = length(local.filtered_custom_managed_rule_groups) > 0 ?
+  effective_custom_managed_waf_rule_groups = (
+    length(local.filtered_custom_managed_rule_groups) > 0 ?
     local.filtered_custom_managed_rule_groups :
     (
       var.web_acl_scope == "CLOUDFRONT" ?
       local.default_custom_managed_rule_groups_cloudfront :
       local.default_custom_managed_rule_groups_regional
     )
+  )
 }
