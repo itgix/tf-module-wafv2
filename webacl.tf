@@ -5,7 +5,7 @@ provider "aws" {
 
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   provider    = aws.virginia
-  name        = "${var.project}-custom-rule-group-global"
+  name        = "${var.project}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Empty custom WAF rule group for CloudFront"
@@ -18,7 +18,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 }
 
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
-  name        = "${var.project}-custom-rule-group-regional"
+  name        = "${var.project}-application-group-regional"
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Empty custom WAF rule group for Regional"
