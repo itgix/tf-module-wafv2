@@ -120,9 +120,8 @@ statement {
       dynamic "statement" {
         for_each = rule.value.match_conditions
         content {
-          # condition matching logic
           dynamic "size_constraint_statement" {
-            for_each = statement.value.type == "body" ? [1] : []
+            for_each = statement.value.type == "BodySize" ? [1] : []
             content {
               comparison_operator = statement.value.operator
               size                = tonumber(statement.value.value)
@@ -136,27 +135,15 @@ statement {
             }
           }
 
-          dynamic "byte_match_statement" {
-            for_each = statement.value.type == "uri_path" ? [1] : []
-            content {
-              search_string         = statement.value.value
-              positional_constraint = statement.value.operator
-              field_to_match {
-                uri_path {}
-              }
-              text_transformation {
-                priority = 0
-                type     = lookup(statement.value, "transform", "NONE")
-              }
-            }
-          }
+          # Add other statement types here if needed
         }
       }
     }
   }
 
+  # Render single statement directly if only 1 match condition
   dynamic "size_constraint_statement" {
-    for_each = length(rule.value.match_conditions) == 1 && rule.value.match_conditions[0].type == "body" ? [1] : []
+    for_each = length(rule.value.match_conditions) == 1 && rule.value.match_conditions[0].type == "BodySize" ? [1] : []
     content {
       comparison_operator = rule.value.match_conditions[0].operator
       size                = tonumber(rule.value.match_conditions[0].value)
@@ -169,22 +156,8 @@ statement {
       }
     }
   }
-
-  dynamic "byte_match_statement" {
-    for_each = length(rule.value.match_conditions) == 1 && rule.value.match_conditions[0].type == "uri_path" ? [1] : []
-    content {
-      search_string         = rule.value.match_conditions[0].value
-      positional_constraint = rule.value.match_conditions[0].operator
-      field_to_match {
-        uri_path {}
-      }
-      text_transformation {
-        priority = 0
-        type     = lookup(rule.value.match_conditions[0], "transform", "NONE")
-      }
-    }
-  }
 }
+
 
     visibility_config {
       cloudwatch_metrics_enabled = true
