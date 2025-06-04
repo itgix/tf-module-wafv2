@@ -19,9 +19,9 @@ locals {
     }
   ]
 
-  effective_custom_managed_waf_rule_groups = length(var.custom_managed_waf_rule_groups) > 0 ?
-    var.custom_managed_waf_rule_groups :
-    (var.web_acl_scope == "CLOUDFRONT" ?
+  effective_custom_managed_waf_rule_groups = length(var.custom_managed_waf_rule_groups) > 0 ? var.custom_managed_waf_rule_groups : (
+    var.web_acl_scope == "CLOUDFRONT" ?
       local.default_custom_managed_rule_groups_cloudfront :
-      local.default_custom_managed_rule_groups_regional)
+      local.default_custom_managed_rule_groups_regional
+  )
 }
