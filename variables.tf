@@ -160,12 +160,17 @@ variable "custom_waf_rules" {
 }
 
 variable "custom_managed_waf_rule_groups" {
+  description = "List of custom managed WAF rule groups with optional rules"
   type = list(object({
-    name                    = string
-    priority                = number
-    action                  = string
-    rule_group_arn          = string
-    rules_override_to_count = list(string)
+    name           = string
+    priority       = number
+    action         = string         # e.g. "none", "count", "block", "allow"
+    rule_group_arn = optional(string)
+    rules = optional(list(object({
+      name     = string
+      priority = number
+      action   = string
+    })), [])  # Optional list of rules inside the group
   }))
   default = []
 }
@@ -182,13 +187,3 @@ variable "application_true" {
   description = "Whether to create the Regional scoped WAF rule group"
 }
 
-variable "custom_rule_group_rules" {
-  description = "List of custom WAFv2 rules"
-  type = list(object({
-    name     = string
-    priority = number
-    action   = string          # "allow", "block", or "count"
-    statement = any            # a map/object representing the statement block for the rule
-  }))
-  default = []
-}

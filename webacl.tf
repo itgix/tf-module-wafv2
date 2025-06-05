@@ -228,21 +228,28 @@ statement {
 dynamic "rule" {
     for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
 
-    content {
-      name     = rule.value.name
-      priority = rule.value.priority
+  content {
+    name     = rule.value.name
+    priority = rule.value.priority
 
-      override_action {
-        dynamic "count" {
-          for_each = rule.value.action == "count" ? [""] : []
-          content {}
-        }
-
-        dynamic "none" {
-          for_each = rule.value.action == "none" ? [""] : []
-          content {}
-        }
+    override_action {
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [""] : []
+        content {}
       }
+      dynamic "none" {
+        for_each = rule.value.action == "none" ? [""] : []
+        content {}
+      }
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [""] : []
+        content {}
+      }
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [""] : []
+        content {}
+      }
+    }
 
       statement {
         rule_group_reference_statement {
@@ -255,39 +262,33 @@ dynamic "rule" {
         metric_name                = rule.value.name
         sampled_requests_enabled   = var.sampled_requests_enabled
     }
-  }
-}
+  # Optional nested rules inside the group
+    dynamic "rule" {
+      for_each = { for r in rule.value.rules : r.name => r }
+      content {
+        name     = rule.value.name
+        priority = rule.value.priority
 
-#Custom rule
-  dynamic "rule" {
-    for_each = var.custom_rule_group_rules
-    content {
-      name     = rule.value.name
-      priority = rule.value.priority
-
-      action {
-        # Dynamically select one action based on input
-        dynamic "allow" {
-          for_each = rule.value.action == "allow" ? [1] : []
-          content {}
+        action {
+          dynamic "block" {
+            for_each = rule.value.action == "block" ? [""] : []
+            content {}
+          }
+          dynamic "allow" {
+            for_each = rule.value.action == "allow" ? [""] : []
+            content {}
+          }
+          dynamic "count" {
+            for_each = rule.value.action == "count" ? [""] : []
+            content {}
+          }
         }
-        dynamic "block" {
-          for_each = rule.value.action == "block" ? [1] : []
-          content {}
-        }
-        dynamic "count" {
-          for_each = rule.value.action == "count" ? [1] : []
-          content {}
-        }
-      }
 
-      # The statement block expects you to pass a proper map structure
-      statement = rule.value.statement
-
-      visibility_config {
-        cloudwatch_metrics_enabled = true
-        metric_name                = rule.value.name
-        sampled_requests_enabled   = true
+        visibility_config {
+          cloudwatch_metrics_enabled = true
+          metric_name                = rule.value.name
+          sampled_requests_enabled   = true
+        }
       }
     }
   }

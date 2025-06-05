@@ -6,7 +6,7 @@ locals {
         priority                = 1
         action                  = "none"
         rule_group_arn          = aws_wafv2_rule_group.custom_rule_group_global[0].arn
-        rules_override_to_count = []
+        rules                   = []
       }
     ] : []
   )
@@ -18,7 +18,7 @@ locals {
         priority                = 1
         action                  = "none"
         rule_group_arn          = aws_wafv2_rule_group.custom_rule_group_regional[0].arn
-        rules_override_to_count = []
+        rules                   = []
       }
     ] : []
   )
