@@ -26,8 +26,11 @@ locals {
   filtered_custom_managed_rule_groups = [
     for r in var.custom_managed_waf_rule_groups : r
     if (
-      (var.web_acl_scope == "CLOUDFRONT" && contains(r.rule_group_arn, ":global/")) ||
-      (var.web_acl_scope == "REGIONAL" && contains(r.rule_group_arn, ":regional/"))
+      try(r.rule_group_arn, "") != "" &&
+      (
+        (var.web_acl_scope == "CLOUDFRONT" && strcontains(r.rule_group_arn, ":global/")) ||
+        (var.web_acl_scope == "REGIONAL" && strcontains(r.rule_group_arn, ":regional/"))
+      )
     )
   ]
 
