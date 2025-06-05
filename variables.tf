@@ -160,13 +160,24 @@ variable "custom_waf_rules" {
 }
 
 variable "custom_managed_waf_rule_groups" {
-  type = list(any)
-  default = [
-    {
-      name                    = "CustomManagedRuleSet"
-      priority                = 1
-      action                  = "none" # count (stop enforcing rule group) or none (let the rule group decide what action to take, i.e. enforcing)
-      rules_override_to_count = []
-    }
-  ]
+  type = list(object({
+    name                    = string
+    priority                = number
+    action                  = string
+    rule_group_arn          = string
+    rules_override_to_count = list(string)
+  }))
+  default = []
+}
+
+variable "cloudfront_true" {
+  type    = bool
+  default = false
+  description = "Whether to create the CloudFront scoped WAF rule group"
+}
+
+variable "application_true" {
+  type    = bool
+  default = false
+  description = "Whether to create the Regional scoped WAF rule group"
 }
