@@ -181,3 +181,14 @@ variable "application_true" {
   default = false
   description = "Whether to create the Regional scoped WAF rule group"
 }
+
+variable "custom_rule_group_rules" {
+  description = "List of custom WAFv2 rules"
+  type = list(object({
+    name     = string
+    priority = number
+    action   = string          # "allow", "block", or "count"
+    statement = any            # a map/object representing the statement block for the rule
+  }))
+  default = []
+}

@@ -258,6 +258,40 @@ dynamic "rule" {
   }
 }
 
+#Custom rule
+  dynamic "rule" {
+    for_each = var.custom_rule_group_rules
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+
+      action {
+        # Dynamically select one action based on input
+        dynamic "allow" {
+          for_each = rule.value.action == "allow" ? [1] : []
+          content {}
+        }
+        dynamic "block" {
+          for_each = rule.value.action == "block" ? [1] : []
+          content {}
+        }
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [1] : []
+          content {}
+        }
+      }
+
+      # The statement block expects you to pass a proper map structure
+      statement = rule.value.statement
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = true
+      }
+    }
+  }
+}
 
 
   
