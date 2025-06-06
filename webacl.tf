@@ -9,12 +9,58 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   name        = "${var.project}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
-  description = "Empty custom WAF rule group for CloudFront"
+  description = "Custom WAF rule group for CloudFront"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${var.project}-customRuleGroupGlobal"
     sampled_requests_enabled   = true
+  }
+
+   dynamic "rule" {
+    for_each = var.custom_waf_rules
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+
+   action {
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [1] : []
+        content {}
+      }
+
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [1] : []
+        content {}
+      }
+
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [1] : []
+        content {}
+      }
+  }
+      statement {
+        size_constraint_statement {
+          comparison_operator = rule.value.comparison_operator
+          size                = rule.value.size
+
+          field_to_match {
+            body {}
+          }
+
+          text_transformation {
+            priority = 0
+            type     = rule.value.transform
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = true
+      }
+    }
   }
 }
 
@@ -23,12 +69,59 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   name        = "${var.project}-application-group-regional"
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
-  description = "Empty custom WAF rule group for Regional"
+  description = "Custom WAF rule group for Regional"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${var.project}-customRuleGroupRegional"
     sampled_requests_enabled   = true
+  }
+
+   dynamic "rule" {
+    for_each = var.custom_waf_rules
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
+
+   action {
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [1] : []
+        content {}
+      }
+
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [1] : []
+        content {}
+      }
+
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [1] : []
+        content {}
+      }
+  }
+
+      statement {
+        size_constraint_statement {
+          comparison_operator = rule.value.comparison_operator
+          size                = rule.value.size
+
+          field_to_match {
+            body {}
+          }
+
+          text_transformation {
+            priority = 0
+            type     = rule.value.transform
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = true
+      }
+    }
   }
 }
 
@@ -94,88 +187,6 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
       sampled_requests_enabled   = var.sampled_requests_enabled
     }
   }
-
-
- # Custom WAF rules
-dynamic "rule" {
-  for_each = { for waf_rule in var.custom_waf_rules : waf_rule.name => waf_rule }
-
-  content {
-    name     = rule.value.name
-    priority = rule.value.priority
-
-    action {
-      dynamic "block" {
-        for_each = rule.value.action == "block" ? [1] : []
-        content {}
-      }
-
-      dynamic "allow" {
-        for_each = rule.value.action == "allow" ? [1] : []
-        content {}
-      }
-    
-      dynamic "count" {
-        for_each = rule.value.action == "count" ? [1] : []
-        content {}
-      }
-    }
-
-statement {
-  dynamic "and_statement" {
-    for_each = length(rule.value.match_conditions) > 1 ? [1] : []
-    content {
-      dynamic "statement" {
-        for_each = rule.value.match_conditions
-        content {
-          dynamic "size_constraint_statement" {
-            for_each = statement.value.type == "BodySize" ? [1] : []
-            content {
-              comparison_operator = statement.value.operator
-              size                = tonumber(statement.value.value)
-              field_to_match {
-                body {}
-              }
-              text_transformation {
-                priority = 0
-                type     = lookup(statement.value, "transform", "NONE")
-              }
-            }
-          }
-
-          # Add other dynamic statement types here if needed
-        }
-      }
-    }
-  }
-
-  dynamic "size_constraint_statement" {
-    for_each = length(rule.value.match_conditions) == 1 && rule.value.match_conditions[0].type == "BodySize" ? [1] : []
-    content {
-      comparison_operator = rule.value.match_conditions[0].operator
-      size                = tonumber(rule.value.match_conditions[0].value)
-      field_to_match {
-        body {}
-      }
-      text_transformation {
-        priority = 0
-        type     = lookup(rule.value.match_conditions[0], "transform", "NONE")
-      }
-    }
-  }
-
-  # Add similar single-statement support for other match types if needed
-}
-
-
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = rule.value.name
-      sampled_requests_enabled   = true
-    }
-  }
-}
 
   dynamic "rule" {
     for_each = toset(var.aws_managed_waf_rule_groups)
