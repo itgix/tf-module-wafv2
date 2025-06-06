@@ -39,7 +39,6 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
         content {}
       }
   }
-
       statement {
         size_constraint_statement {
           comparison_operator = rule.value.comparison_operator
@@ -84,30 +83,23 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
       name     = rule.value.name
       priority = rule.value.priority
 
-
-   dynamic "rule" {
-    for_each = var.custom_waf_rules
-    content {
-      name     = rule.value.name
-      priority = rule.value.priority
-
-      action {
-        dynamic "allow" {
-          for_each = rule.value.action == "allow" ? [1] : []
-          content {}
+   action {
+      dynamic "allow" {
+        for_each = rule.value.action == "allow" ? [1] : []
+        content {}
       }
 
-        dynamic "block" {
-          for_each = rule.value.action == "block" ? [1] : []
-          content {}
+      dynamic "block" {
+        for_each = rule.value.action == "block" ? [1] : []
+        content {}
       }
 
-        dynamic "count" {
-          for_each = rule.value.action == "count" ? [1] : []
-          content {}
+      dynamic "count" {
+        for_each = rule.value.action == "count" ? [1] : []
+        content {}
       }
-     }
-    }
+  }
+
       statement {
         size_constraint_statement {
           comparison_operator = rule.value.comparison_operator
