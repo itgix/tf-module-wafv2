@@ -7,7 +7,11 @@ output "webacl_id" {
 }
 
 output "custom_rule_group_arns" {
-  value = local.effective_custom_managed_waf_rule_groups[*].rule_group_arn : null
+  value = var.cloudfront_true || var.application_true ? [
+    for rg in local.effective_custom_managed_waf_rule_groups :
+    rg.rule_group_arn
+    if rg.rule_group_arn != null
+  ] : []
 }
 
 output "debug_rule_group_count" {
