@@ -237,7 +237,12 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 
 # Custom managed rule groups
 dynamic "rule" {
-    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
+  for_each = (
+    (var.web_acl_scope == "CLOUDFRONT" && var.cloudfront_true) ||
+    (var.web_acl_scope == "REGIONAL" && var.application_true)
+  ) ? {
+    for r in local.effective_custom_managed_waf_rule_groups : r.name => r
+  } : {}
 
     content {
       name     = rule.value.name
