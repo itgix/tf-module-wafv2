@@ -1,6 +1,6 @@
 locals {
   default_custom_managed_rule_groups_cloudfront = (
-    length(aws_wafv2_rule_group.custom_rule_group_global) > 0 ? [
+    var.cloudfront_true && length(aws_wafv2_rule_group.custom_rule_group_global) > 0 ? [
       {
         name                    = "CustomManagedRuleSetGlobal"
         priority                = 1
@@ -12,7 +12,7 @@ locals {
   )
 
   default_custom_managed_rule_groups_regional = (
-    length(aws_wafv2_rule_group.custom_rule_group_regional) > 0 ? [
+    var.application_true && length(aws_wafv2_rule_group.custom_rule_group_regional) > 0 ? [
       {
         name                    = "CustomManagedRuleSetRegional"
         priority                = 1
