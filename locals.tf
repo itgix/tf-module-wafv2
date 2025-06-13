@@ -1,23 +1,23 @@
 locals {
   default_custom_managed_rule_groups_cloudfront = (
-    var.cloudfront_true && length(aws_wafv2_rule_group.custom_rule_group_global) > 0 ? [
+    var.cloudfront_true && try(length(aws_wafv2_rule_group.custom_rule_group_global), 0) ? [
       {
         name                    = "CustomManagedRuleSetGlobal"
         priority                = 1
         action                  = "none"
-        rule_group_arn          = aws_wafv2_rule_group.custom_rule_group_global[0].arn
+        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_global[0].arn, null)
         rules_override_to_count = []
       }
     ] : []
   )
 
   default_custom_managed_rule_groups_regional = (
-    var.application_true && length(aws_wafv2_rule_group.custom_rule_group_regional) > 0 ? [
+    var.application_true && try(length(aws_wafv2_rule_group.custom_rule_group_regional), 0) ? [
       {
         name                    = "CustomManagedRuleSetRegional"
         priority                = 1
         action                  = "none"
-        rule_group_arn          = aws_wafv2_rule_group.custom_rule_group_regional[0].arn
+        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_regional[0].arn, null)
         rules_override_to_count = []
       }
     ] : []
