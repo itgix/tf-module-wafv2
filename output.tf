@@ -7,7 +7,7 @@ output "webacl_id" {
 }
 
 output "custom_rule_group_arns" {
-  value = local.effective_custom_managed_waf_rule_groups[*].rule_group_arn
+  value = local.effective_custom_managed_waf_rule_groups[*].rule_group_arn : null
 }
 
 output "debug_rule_group_count" {
