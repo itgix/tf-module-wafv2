@@ -238,11 +238,24 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 # Custom managed rule groups
 dynamic "rule" {
   for_each = (
-    (var.web_acl_scope == "CLOUDFRONT" && var.cloudfront_true) ||
-    (var.web_acl_scope == "REGIONAL" && var.application_true)
-  ) ? {
-    for r in local.effective_custom_managed_waf_rule_groups : r.name => r
-  } : {}
+    var.web_acl_scope == "CLOUDFRONT" && var.cloudfront_true ? {
+      "CustomManagedRuleSetGlobal" = {
+        name                    = "CustomManagedRuleSetGlobal"
+        priority                = 1
+        action                  = "none"
+        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_global[0].arn, null)
+        rules_override_to_count = []
+      }
+    } : var.web_acl_scope == "REGIONAL" && var.application_true ? {
+      "CustomManagedRuleSetRegional" = {
+        name                    = "CustomManagedRuleSetRegional"
+        priority                = 1
+        action                  = "none"
+        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_regional[0].arn, null)
+        rules_override_to_count = []
+      }
+    } : {}
+  )
 
     content {
       name     = rule.value.name
