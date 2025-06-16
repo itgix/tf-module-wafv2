@@ -6,14 +6,14 @@ provider "aws" {
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   count       = var.cloudfront_true ? 1 : 0
   provider    = aws.virginia
-  name        = "${var.project}-${var.env}-cloudfront-rule-group-global"
+  name        = "${var.project}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for CloudFront"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project}-${var.env}-customRuleGroupGlobal"
+    metric_name                = "${var.project}-customRuleGroupGlobal"
     sampled_requests_enabled   = true
   }
 
@@ -66,14 +66,14 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   count       = var.application_true ? 1 : 0
-  name        = "${var.project}-${var.env}-${var.aws_region}-application-group-regional"
+  name        = "${var.project}-application-group-regional"
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for Regional"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project}-${var.env}-${var.aws_region}-customRuleGroupRegional"
+    metric_name                = "${var.project}-customRuleGroupRegional"
     sampled_requests_enabled   = true
   }
 
@@ -237,25 +237,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 
 # Custom managed rule groups
 dynamic "rule" {
-  for_each = (
-    var.web_acl_scope == "CLOUDFRONT" && var.cloudfront_true ? {
-      "CustomManagedRuleSetGlobal" = {
-        name                    = "CustomManagedRuleSetGlobal"
-        priority                = 1
-        action                  = "none"
-        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_global[0].arn, null)
-        rules_override_to_count = []
-      }
-    } : var.web_acl_scope == "REGIONAL" && var.application_true ? {
-      "CustomManagedRuleSetRegional" = {
-        name                    = "CustomManagedRuleSetRegional"
-        priority                = 1
-        action                  = "none"
-        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_regional[0].arn, null)
-        rules_override_to_count = []
-      }
-    } : {}
-  )
+    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
 
     content {
       name     = rule.value.name
