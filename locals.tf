@@ -17,7 +17,7 @@ locals {
         name                    = "CustomManagedRuleSetRegional"
         priority                = 1
         action                  = "none"
-        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_global[*].arn)
+        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_regional[*].arn)
         rules_override_to_count = []
       }
     ] : []
