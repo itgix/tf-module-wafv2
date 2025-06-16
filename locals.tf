@@ -5,7 +5,7 @@ locals {
         name                    = "CustomManagedRuleSetGlobal"
         priority                = 1
         action                  = "none"
-        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_global[0].arn, null)
+        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_global[*].arn, null)
         rules_override_to_count = []
       }
     ] : []
@@ -17,7 +17,7 @@ locals {
         name                    = "CustomManagedRuleSetRegional"
         priority                = 1
         action                  = "none"
-        rule_group_arn          = try(aws_wafv2_rule_group.custom_rule_group_regional[0].arn, null)
+        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_regional[*].arn, null)
         rules_override_to_count = []
       }
     ] : []
