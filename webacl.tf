@@ -65,7 +65,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 }
 
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
-  count       = var.waf_enabled && var.application_trues ? 1 : 0
+  count       = var.waf_enabled && var.application_true ? 1 : 0
   name        = "${var.project}-${var.env}-${var.aws_region}-application-group-regional"
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
