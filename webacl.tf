@@ -6,14 +6,14 @@ provider "aws" {
 resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   count       = var.cloudfront_true ? 1 : 0
   provider    = aws.virginia
-  name        = "${var.project}-cloudfront-rule-group-global"
+  name        = "${var.project}-${var.env}-${var.aws_region}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for CloudFront"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project}-customRuleGroupGlobal"
+    metric_name                = "${var.project}-${var.env}-${var.aws_region}-customRuleGroupGlobal"
     sampled_requests_enabled   = true
   }
 
@@ -66,14 +66,14 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
 
 resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   count       = var.application_true ? 1 : 0
-  name        = "${var.project}-application-group-regional"
+  name        = "${var.project}-${var.env}-${var.aws_region}-application-group-regional"
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for Regional"
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "${var.project}-customRuleGroupRegional"
+    metric_name                = "${var.project}-${var.env}-${var.aws_region}-customRuleGroupRegional"
     sampled_requests_enabled   = true
   }
 
