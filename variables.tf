@@ -178,3 +178,8 @@ variable "application_true" {
   default = false
   description = "Whether to create the Regional scoped WAF rule group"
 }
+
+variable "ignore_rule_changes" {
+  type    = bool
+  default = false  # set to true to prevent Terraform from changing rules
+}

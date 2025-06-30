@@ -11,6 +11,10 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for CloudFront"
 
+  lifecycle {
+    ignore_changes = var.ignore_rule_changes ? ["rule"] : []
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${var.project}-${var.env}-${var.aws_region}-customRuleGroupGlobal"
@@ -70,6 +74,10 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   scope       = "REGIONAL"
   capacity    = 50  # minimum capacity for empty rule group
   description = "Custom WAF rule group for Regional"
+
+  lifecycle {
+    ignore_changes = var.ignore_rule_changes ? ["rule"] : []
+  }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
