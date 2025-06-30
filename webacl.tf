@@ -12,7 +12,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   description = "Custom WAF rule group for CloudFront"
 
   lifecycle {
-    ignore_changes = var.waf_ignore_rule_changes ? ["rule"] : []
+    ignore_changes = ["rule"]
   }
 
   visibility_config {
@@ -76,7 +76,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   description = "Custom WAF rule group for Regional"
 
   lifecycle {
-    ignore_changes = var.waf_ignore_rule_changes ? ["rule"] : []
+    ignore_changes = ["rule"]
   }
 
   visibility_config {
