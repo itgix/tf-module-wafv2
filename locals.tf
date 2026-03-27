@@ -1,4 +1,16 @@
 locals {
+  # When verified-bot allow runs before geo, insert two rules at 0–1 and move geo to 2; shift all following priorities by +2.
+  aws_managed_waf_rule_groups_for_acl = var.allow_aws_verified_bots_before_geo ? [
+    for g in var.aws_managed_waf_rule_groups : merge(g, { priority = g.priority + 2 })
+    if try(g.name, "") != "AWSManagedRulesBotControlRuleSet"
+  ] : var.aws_managed_waf_rule_groups
+
+  effective_custom_managed_waf_rule_groups_for_acl = [
+    for r in local.effective_custom_managed_waf_rule_groups : merge(r, {
+      priority = var.allow_aws_verified_bots_before_geo ? r.priority + 2 : r.priority
+    })
+  ]
+
   default_custom_managed_rule_groups_cloudfront = (
     var.cloudfront_true && (try(length(aws_wafv2_rule_group.custom_rule_group_global), 0) > 0) ? [
       {

@@ -166,10 +166,68 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     sampled_requests_enabled   = var.sampled_requests_enabled
   }
 
-  // Geo-Location block rules - with highest priority in order to be avaluated before any other rules
+  # Bot Control first (count) adds labels; then allow verified bots before geo allowlist/blocklist.
+  # See https://docs.aws.amazon.com/waf/latest/developerguide/waf-bot-control-example-allow-verified-bots.html
+  dynamic "rule" {
+    for_each = var.allow_aws_verified_bots_before_geo ? [1] : []
+    content {
+      name     = "AWS-BotControl-Labeling"
+      priority = 0
+
+      override_action {
+        count {}
+      }
+
+      statement {
+        managed_rule_group_statement {
+          name        = "AWSManagedRulesBotControlRuleSet"
+          vendor_name = "AWS"
+
+          managed_rule_group_configs {
+            aws_managed_rules_bot_control_rule_set {
+              inspection_level = var.waf_bot_control_inspection_level
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = "AWS-BotControl-Labeling"
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
+  dynamic "rule" {
+    for_each = var.allow_aws_verified_bots_before_geo ? [1] : []
+    content {
+      name     = "Allow-AWS-Verified-Bots"
+      priority = 1
+
+      action {
+        allow {}
+      }
+
+      statement {
+        label_match_statement {
+          scope = "LABEL"
+          key   = "awswaf:managed:aws:bot-control:bot:verified"
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = "Allow-AWS-Verified-Bots"
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
+  // Geo-Location rule: priority 0 when alone, or 2 after Bot Control + verified-bot allow
   rule {
     name     = "GEO-Blacklist-Country"
-    priority = 0
+    priority = var.allow_aws_verified_bots_before_geo ? 2 : 0
 
     action {
       dynamic "allow" {
@@ -197,7 +255,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   }
 
   dynamic "rule" {
-    for_each = toset(var.aws_managed_waf_rule_groups)
+    for_each = { for g in local.aws_managed_waf_rule_groups_for_acl : "${g.name}-${g.priority}" => g }
 
     content {
       name     = rule.value.name
@@ -222,7 +280,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
           vendor_name = "AWS"
 
           dynamic "rule_action_override" {
-            for_each = [for rule_override in rule.value.rules_override_to_count : rule_override]
+            for_each = [for rule_override in try(rule.value.rules_override_to_count, []) : rule_override]
 
             content {
               name = rule_action_override.value
@@ -245,7 +303,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 
 # Custom managed rule groups
 dynamic "rule" {
-    for_each = { for r in local.effective_custom_managed_waf_rule_groups : r.name => r }
+    for_each = { for r in local.effective_custom_managed_waf_rule_groups_for_acl : r.name => r }
 
     content {
       name     = rule.value.name

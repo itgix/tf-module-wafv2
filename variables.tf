@@ -71,6 +71,28 @@ variable "waf_geo_location_block_enforce" {
   description = "allow or block - action to take on geo location list of countries"
 }
 
+variable "allow_aws_verified_bots_before_geo" {
+  type        = bool
+  default     = false
+  description = <<-EOT
+    When true, evaluates AWS Bot Control in count mode first (priority 0), then allows requests labeled as AWS verified bots (priority 1),
+    then your geo rule (priority 2). Use with a geo allowlist (e.g. CA, BG) and default_action block so crawlers such as Googlebot are not blocked by geography.
+    Removes AWSManagedRulesBotControlRuleSet from aws_managed_waf_rule_groups if present to avoid attaching the same managed group twice.
+    Shifts aws_managed_waf_rule_groups and custom_managed_waf_rule_groups priorities by +2.
+  EOT
+}
+
+variable "waf_bot_control_inspection_level" {
+  type        = string
+  default     = "COMMON"
+  description = "Inspection level for the Bot Control managed rule group when allow_aws_verified_bots_before_geo is true. Use COMMON (lower cost) or TARGETED."
+
+  validation {
+    condition     = contains(["COMMON", "TARGETED"], var.waf_bot_control_inspection_level)
+    error_message = "waf_bot_control_inspection_level must be COMMON or TARGETED."
+  }
+}
+
 variable "rules" {
   description = "List of WAF rules."
   type        = any
