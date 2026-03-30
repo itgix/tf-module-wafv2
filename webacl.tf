@@ -243,7 +243,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   dynamic "rule" {
     for_each = var.geo_rule_enabled ? [1] : []
     content {
-      name     = "GEO-Blacklist-Country"
+      name     = var.waf_geo_location_block_enforce == "block" ? "GEO-Blacklist-Country" : "GEO-Whitelist-Country"
       priority = var.geo_rule_priority
 
       action {
@@ -266,7 +266,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 
       visibility_config {
         cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
-        metric_name                = "GEO-Blacklist-Country"
+        metric_name                = var.waf_geo_location_block_enforce == "block" ? "GEO-Blacklist-Country" : "GEO-Whitelist-Country"
         sampled_requests_enabled   = var.sampled_requests_enabled
       }
     }
