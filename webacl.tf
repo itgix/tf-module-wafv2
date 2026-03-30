@@ -8,7 +8,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   provider    = aws.virginia
   name        = "${var.project}-${var.env}-${var.aws_region}-cloudfront-rule-group-global"
   scope       = "CLOUDFRONT"
-  capacity    = 50  # minimum capacity for empty rule group
+  capacity    = 50 # minimum capacity for empty rule group
   description = "Custom WAF rule group for CloudFront"
 
   lifecycle {
@@ -21,28 +21,28 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
     sampled_requests_enabled   = true
   }
 
-   dynamic "rule" {
+  dynamic "rule" {
     for_each = var.custom_waf_rules
     content {
       name     = rule.value.name
       priority = rule.value.priority
 
-   action {
-      dynamic "allow" {
-        for_each = rule.value.action == "allow" ? [1] : []
-        content {}
-      }
+      action {
+        dynamic "allow" {
+          for_each = rule.value.action == "allow" ? [1] : []
+          content {}
+        }
 
-      dynamic "block" {
-        for_each = rule.value.action == "block" ? [1] : []
-        content {}
-      }
+        dynamic "block" {
+          for_each = rule.value.action == "block" ? [1] : []
+          content {}
+        }
 
-      dynamic "count" {
-        for_each = rule.value.action == "count" ? [1] : []
-        content {}
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [1] : []
+          content {}
+        }
       }
-  }
       statement {
         size_constraint_statement {
           comparison_operator = rule.value.comparison_operator
@@ -72,7 +72,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   count       = var.waf_enabled && var.application_true ? 1 : 0
   name        = "${var.project}-${var.env}-${var.aws_region}-application-group-regional"
   scope       = "REGIONAL"
-  capacity    = 50  # minimum capacity for empty rule group
+  capacity    = 50 # minimum capacity for empty rule group
   description = "Custom WAF rule group for Regional"
 
   lifecycle {
@@ -85,28 +85,28 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
     sampled_requests_enabled   = true
   }
 
-   dynamic "rule" {
+  dynamic "rule" {
     for_each = var.custom_waf_rules
     content {
       name     = rule.value.name
       priority = rule.value.priority
 
-   action {
-      dynamic "allow" {
-        for_each = rule.value.action == "allow" ? [1] : []
-        content {}
-      }
+      action {
+        dynamic "allow" {
+          for_each = rule.value.action == "allow" ? [1] : []
+          content {}
+        }
 
-      dynamic "block" {
-        for_each = rule.value.action == "block" ? [1] : []
-        content {}
-      }
+        dynamic "block" {
+          for_each = rule.value.action == "block" ? [1] : []
+          content {}
+        }
 
-      dynamic "count" {
-        for_each = rule.value.action == "count" ? [1] : []
-        content {}
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [1] : []
+          content {}
+        }
       }
-  }
 
       statement {
         size_constraint_statement {
@@ -142,8 +142,8 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
 #}
 
 resource "aws_wafv2_web_acl" "wafv2_web_acl" {
-  count       = var.waf_enabled ? 1 : 0
-#  depends_on = [time_sleep.wait_for_rule_groups]
+  count = var.waf_enabled ? 1 : 0
+  #  depends_on = [time_sleep.wait_for_rule_groups]
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
   description = "Geo-Location blocking and Web Application Security firewall"
   scope       = var.web_acl_scope
@@ -210,9 +210,25 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
       }
 
       statement {
-        label_match_statement {
-          scope = "LABEL"
-          key   = "awswaf:managed:aws:bot-control:bot:verified"
+        or_statement {
+          statement {
+            label_match_statement {
+              scope = "LABEL"
+              key   = "awswaf:managed:aws:bot-control:bot:verified"
+            }
+          }
+          statement {
+            label_match_statement {
+              scope = "LABEL"
+              key   = "awswaf:managed:aws:bot-control:bot:user_triggered:verified"
+            }
+          }
+          statement {
+            label_match_statement {
+              scope = "LABEL"
+              key   = "awswaf:managed:aws:bot-control:bot:developer_platform:verified"
+            }
+          }
         }
       }
 
@@ -301,8 +317,8 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   }
 
 
-# Custom managed rule groups
-dynamic "rule" {
+  # Custom managed rule groups
+  dynamic "rule" {
     for_each = { for r in local.effective_custom_managed_waf_rule_groups_for_acl : r.name => r }
 
     content {
@@ -331,13 +347,77 @@ dynamic "rule" {
         cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
         metric_name                = rule.value.name
         sampled_requests_enabled   = var.sampled_requests_enabled
+      }
     }
   }
-}
 
+  dynamic "rule" {
+    for_each = { for r in local.rate_limit_rules_for_acl : r.name => r }
 
+    content {
+      name     = rule.value.name
+      priority = rule.value.priority
 
-  
+      action {
+        dynamic "block" {
+          for_each = rule.value.action == "block" ? [1] : []
+          content {}
+        }
+
+        dynamic "count" {
+          for_each = rule.value.action == "count" ? [1] : []
+          content {}
+        }
+
+        dynamic "captcha" {
+          for_each = rule.value.action == "captcha" ? [1] : []
+          content {}
+        }
+      }
+
+      statement {
+        rate_based_statement {
+          limit                 = rule.value.limit
+          aggregate_key_type    = rule.value.aggregate_key_type
+          evaluation_window_sec = rule.value.evaluation_window_sec
+
+          dynamic "forwarded_ip_config" {
+            for_each = rule.value.forwarded_ip_config != null ? [rule.value.forwarded_ip_config] : []
+            content {
+              header_name       = forwarded_ip_config.value.header_name
+              fallback_behavior = forwarded_ip_config.value.fallback_behavior
+            }
+          }
+
+          dynamic "scope_down_statement" {
+            for_each = rule.value.scope_down_byte_match != null ? [rule.value.scope_down_byte_match] : []
+            content {
+              byte_match_statement {
+                search_string         = scope_down_statement.value.search_string
+                positional_constraint = scope_down_statement.value.positional_constraint
+
+                field_to_match {
+                  uri_path {}
+                }
+
+                text_transformation {
+                  priority = 0
+                  type     = scope_down_statement.value.text_transformation
+                }
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = rule.value.name
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
   # TODO: add options to handle, those rules additionally, they require specific additional configuration that cannot be handled with the current dynamic block
   #// AWS account creation fraud prevention rule group
   #{

@@ -170,9 +170,9 @@ variable "custom_waf_rules" {
   type = list(object({
     name                = string
     priority            = number
-    action              = string              # "allow", "block", or "count"
-    comparison_operator = string              # e.g. "GT"
-    size                = number              # e.g. 15728640 (15MB)
+    action              = string # "allow", "block", or "count"
+    comparison_operator = string # e.g. "GT"
+    size                = number # e.g. 15728640 (15MB)
     transform           = optional(string, "NONE")
   }))
   default = []
@@ -189,14 +189,36 @@ variable "custom_managed_waf_rule_groups" {
   default = []
 }
 
+variable "rate_limit_rules" {
+  description = "List of rate-based rules to add to the WAF Web ACL. Each rule tracks request rates and triggers the specified action when the limit is exceeded within the evaluation window."
+  type = list(object({
+    name                  = string
+    priority              = number
+    action                = string                 # "block", "count", or "captcha"
+    limit                 = number                 # max requests per evaluation window (min 100)
+    aggregate_key_type    = optional(string, "IP") # "IP", "FORWARDED_IP", or "CONSTANT"
+    evaluation_window_sec = optional(number, 300)  # 60, 120, 300, or 600
+    forwarded_ip_config = optional(object({
+      header_name       = string
+      fallback_behavior = string # "MATCH" or "NO_MATCH"
+    }))
+    scope_down_byte_match = optional(object({
+      search_string         = string
+      positional_constraint = string # "EXACTLY", "STARTS_WITH", "ENDS_WITH", "CONTAINS"
+      text_transformation   = optional(string, "NONE")
+    }))
+  }))
+  default = []
+}
+
 variable "cloudfront_true" {
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Whether to create the CloudFront scoped WAF rule group"
 }
 
 variable "application_true" {
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Whether to create the Regional scoped WAF rule group"
 }

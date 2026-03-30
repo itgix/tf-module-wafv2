@@ -11,6 +11,12 @@ locals {
     })
   ]
 
+  rate_limit_rules_for_acl = [
+    for r in var.rate_limit_rules : merge(r, {
+      priority = var.allow_aws_verified_bots_before_geo ? r.priority + 2 : r.priority
+    })
+  ]
+
   default_custom_managed_rule_groups_cloudfront = (
     var.cloudfront_true && (try(length(aws_wafv2_rule_group.custom_rule_group_global), 0) > 0) ? [
       {
@@ -21,7 +27,7 @@ locals {
         rules_override_to_count = []
       }
     ] : []
-  )#
+  ) #
 
   default_custom_managed_rule_groups_regional = (
     var.application_true && (try(length(aws_wafv2_rule_group.custom_rule_group_regional), 0) > 0) ? [
@@ -33,15 +39,15 @@ locals {
         rules_override_to_count = []
       }
     ] : []
-  )#
+  ) #
 
   filtered_custom_managed_rule_groups = [
     for r in var.custom_managed_waf_rule_groups : r
-    if (
+    if(
       (var.web_acl_scope == "CLOUDFRONT" && contains(r.rule_group_arn, ":global/")) ||
       (var.web_acl_scope == "REGIONAL" && contains(r.rule_group_arn, ":regional/"))
     )
-  ]#
+  ] #
 
   effective_custom_managed_waf_rule_groups = (
     length(local.filtered_custom_managed_rule_groups) > 0 ?
