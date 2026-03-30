@@ -172,7 +172,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     for_each = var.allow_aws_verified_bots_before_geo ? [1] : []
     content {
       name     = "AWS-BotControl-Labeling"
-      priority = 0
+      priority = var.bot_control_labeling_priority
 
       override_action {
         count {}
@@ -203,7 +203,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     for_each = var.allow_aws_verified_bots_before_geo ? [1] : []
     content {
       name     = "Allow-AWS-Verified-Bots"
-      priority = 1
+      priority = var.verified_bot_allow_priority
 
       action {
         allow {}
@@ -240,33 +240,35 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     }
   }
 
-  // Geo-Location rule: priority 0 when alone, or 2 after Bot Control + verified-bot allow
-  rule {
-    name     = "GEO-Blacklist-Country"
-    priority = var.allow_aws_verified_bots_before_geo ? 2 : 0
+  dynamic "rule" {
+    for_each = var.geo_rule_enabled ? [1] : []
+    content {
+      name     = "GEO-Blacklist-Country"
+      priority = var.geo_rule_priority
 
-    action {
-      dynamic "allow" {
-        for_each = var.waf_geo_location_block_enforce == "allow" ? [""] : []
-        content {}
+      action {
+        dynamic "allow" {
+          for_each = var.waf_geo_location_block_enforce == "allow" ? [""] : []
+          content {}
+        }
+
+        dynamic "block" {
+          for_each = var.waf_geo_location_block_enforce == "block" ? [""] : []
+          content {}
+        }
       }
 
-      dynamic "block" {
-        for_each = var.waf_geo_location_block_enforce == "block" ? [""] : []
-        content {}
+      statement {
+        geo_match_statement {
+          country_codes = var.country_codes_match
+        }
       }
-    }
 
-    statement {
-      geo_match_statement {
-        country_codes = var.country_codes_match
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = "GEO-Blacklist-Country"
+        sampled_requests_enabled   = var.sampled_requests_enabled
       }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
-      metric_name                = "GEO-Blacklist-Country"
-      sampled_requests_enabled   = var.sampled_requests_enabled
     }
   }
 

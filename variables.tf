@@ -71,15 +71,38 @@ variable "waf_geo_location_block_enforce" {
   description = "allow or block - action to take on geo location list of countries"
 }
 
+variable "geo_rule_enabled" {
+  type        = bool
+  default     = true
+  description = "Whether to include the geo-match rule in the Web ACL. Disable when geo blocking is not needed."
+}
+
+variable "geo_rule_priority" {
+  type        = number
+  default     = 0
+  description = "Priority for the geo-match rule. Adjust to control evaluation order relative to other rules."
+}
+
 variable "allow_aws_verified_bots_before_geo" {
   type        = bool
   default     = false
   description = <<-EOT
-    When true, evaluates AWS Bot Control in count mode first (priority 0), then allows requests labeled as AWS verified bots (priority 1),
-    then your geo rule (priority 2). Use with a geo allowlist (e.g. CA, BG) and default_action block so crawlers such as Googlebot are not blocked by geography.
-    Removes AWSManagedRulesBotControlRuleSet from aws_managed_waf_rule_groups if present to avoid attaching the same managed group twice.
-    Shifts aws_managed_waf_rule_groups and custom_managed_waf_rule_groups priorities by +2.
+    When true, adds Bot Control in count mode and an allow rule for verified bots.
+    Removes AWSManagedRulesBotControlRuleSet from aws_managed_waf_rule_groups if present to avoid attaching it twice.
+    Callers are responsible for setting non-conflicting priorities across all rules.
   EOT
+}
+
+variable "bot_control_labeling_priority" {
+  type        = number
+  default     = 0
+  description = "Priority for the Bot Control labeling rule (only used when allow_aws_verified_bots_before_geo is true)."
+}
+
+variable "verified_bot_allow_priority" {
+  type        = number
+  default     = 1
+  description = "Priority for the allow-verified-bots rule (only used when allow_aws_verified_bots_before_geo is true)."
 }
 
 variable "waf_bot_control_inspection_level" {
@@ -91,12 +114,6 @@ variable "waf_bot_control_inspection_level" {
     condition     = contains(["COMMON", "TARGETED"], var.waf_bot_control_inspection_level)
     error_message = "waf_bot_control_inspection_level must be COMMON or TARGETED."
   }
-}
-
-variable "rules" {
-  description = "List of WAF rules."
-  type        = any
-  default     = []
 }
 
 

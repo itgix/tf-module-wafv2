@@ -1,21 +1,14 @@
 locals {
-  # When verified-bot allow runs before geo, insert two rules at 0–1 and move geo to 2; shift all following priorities by +2.
+  # Filter out BotControlRuleSet from managed groups when allow_aws_verified_bots_before_geo is true
+  # to avoid attaching the same managed group twice. No automatic priority shifting — callers set explicit priorities.
   aws_managed_waf_rule_groups_for_acl = var.allow_aws_verified_bots_before_geo ? [
-    for g in var.aws_managed_waf_rule_groups : merge(g, { priority = g.priority + 2 })
+    for g in var.aws_managed_waf_rule_groups : g
     if try(g.name, "") != "AWSManagedRulesBotControlRuleSet"
   ] : var.aws_managed_waf_rule_groups
 
-  effective_custom_managed_waf_rule_groups_for_acl = [
-    for r in local.effective_custom_managed_waf_rule_groups : merge(r, {
-      priority = var.allow_aws_verified_bots_before_geo ? r.priority + 2 : r.priority
-    })
-  ]
+  effective_custom_managed_waf_rule_groups_for_acl = local.effective_custom_managed_waf_rule_groups
 
-  rate_limit_rules_for_acl = [
-    for r in var.rate_limit_rules : merge(r, {
-      priority = var.allow_aws_verified_bots_before_geo ? r.priority + 2 : r.priority
-    })
-  ]
+  rate_limit_rules_for_acl = var.rate_limit_rules
 
   default_custom_managed_rule_groups_cloudfront = (
     var.cloudfront_true && (try(length(aws_wafv2_rule_group.custom_rule_group_global), 0) > 0) ? [
