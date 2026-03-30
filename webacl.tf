@@ -22,7 +22,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
   }
 
   dynamic "rule" {
-    for_each = var.custom_waf_rules
+    for_each = local.custom_waf_rules_for_rule_group
     content {
       name     = rule.value.name
       priority = rule.value.priority
@@ -112,7 +112,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
   }
 
   dynamic "rule" {
-    for_each = var.custom_waf_rules
+    for_each = local.custom_waf_rules_for_rule_group
     content {
       name     = rule.value.name
       priority = rule.value.priority

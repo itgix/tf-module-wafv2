@@ -1,4 +1,12 @@
 locals {
+  # If label_match is populated but rule_type is omitted, optional() defaults rule_type to size_constraint and
+  # Terraform would emit size_constraint_statement without size. Infer label_match when labels are present.
+  custom_waf_rules_for_rule_group = [
+    for r in var.custom_waf_rules : merge(r, {
+      rule_type = length(coalesce(r.label_match, [])) > 0 ? "label_match" : coalesce(r.rule_type, "size_constraint")
+    })
+  ]
+
   aws_managed_waf_rule_groups_for_acl = var.aws_managed_waf_rule_groups
 
   effective_custom_managed_waf_rule_groups_for_acl = local.effective_custom_managed_waf_rule_groups

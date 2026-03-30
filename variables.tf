@@ -160,7 +160,7 @@ variable "custom_waf_rules" {
     name                = string
     priority            = number
     action              = string # "allow", "block", or "count"
-    rule_type           = optional(string, "size_constraint", "label_match")
+    rule_type           = optional(string, "size_constraint")
     comparison_operator = optional(string)
     size                = optional(number)
     transform           = optional(string, "NONE")
@@ -182,19 +182,22 @@ variable "custom_waf_rules" {
   validation {
     condition = alltrue([
       for r in var.custom_waf_rules :
-      coalesce(r.rule_type, "size_constraint") != "size_constraint" ? true : (
-        try(r.comparison_operator, null) != null && try(r.size, null) != null
+      length(coalesce(r.label_match, [])) > 0 ? true : (
+        coalesce(r.rule_type, "size_constraint") != "size_constraint" ? true : (
+          try(r.comparison_operator, null) != null && try(r.size, null) != null
+        )
       )
     ])
-    error_message = "custom_waf_rules: size_constraint rules require comparison_operator and size."
+    error_message = "custom_waf_rules: size_constraint rules require comparison_operator and size (or set label_match for label_match rules)."
   }
 
   validation {
     condition = alltrue([
       for r in var.custom_waf_rules :
-      coalesce(r.rule_type, "size_constraint") != "label_match" ? true : (
-        length(coalesce(r.label_match, [])) >= 1
-      )
+      (
+        coalesce(r.rule_type, "size_constraint") != "label_match" &&
+        length(coalesce(r.label_match, [])) == 0
+      ) ? true : length(coalesce(r.label_match, [])) >= 1
     ])
     error_message = "custom_waf_rules: label_match rules require at least one label_match entry (key, optional scope)."
   }
