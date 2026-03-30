@@ -204,7 +204,7 @@ variable "custom_waf_rules" {
 }
 
 variable "custom_managed_waf_rule_groups" {
-  description = "Explicit rule group references for the Web ACL. When empty, the module only auto-attaches the built-in regional/global rule group if custom_waf_rules is non-empty (so an empty custom list does not add CustomManagedRuleSet* by default)."
+  description = "Explicit rule group ARNs to attach on the Web ACL. When [] and custom_waf_rules is non-empty, the module attaches its own rule group. When [] and custom_waf_rules is empty, no custom rule group is created or attached."
   type = list(object({
     name                    = string
     priority                = number
@@ -240,11 +240,11 @@ variable "rate_limit_rules" {
 variable "cloudfront_true" {
   type        = bool
   default     = false
-  description = "Whether to create the CloudFront scoped WAF rule group"
+  description = "When true, allows the CloudFront-scoped module rule group; it is only created if custom_waf_rules is non-empty."
 }
 
 variable "application_true" {
   type        = bool
   default     = false
-  description = "Whether to create the Regional scoped WAF rule group"
+  description = "When true, allows the Regional module rule group; it is only created if custom_waf_rules is non-empty."
 }

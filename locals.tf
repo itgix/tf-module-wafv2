@@ -45,13 +45,19 @@ locals {
     )
   ] #
 
+  # Empty custom_managed_waf_rule_groups: only auto-attach the module-managed rule group when custom_waf_rules
+  # is non-empty (otherwise no CustomManagedRuleSet* on the Web ACL and no aws_wafv2_rule_group created).
   effective_custom_managed_waf_rule_groups = (
     length(local.filtered_custom_managed_rule_groups) > 0 ?
     local.filtered_custom_managed_rule_groups :
     (
-      var.web_acl_scope == "CLOUDFRONT" ?
-      local.default_custom_managed_rule_groups_cloudfront :
-      local.default_custom_managed_rule_groups_regional
+      length(var.custom_waf_rules) > 0 ?
+      (
+        var.web_acl_scope == "CLOUDFRONT" ?
+        local.default_custom_managed_rule_groups_cloudfront :
+        local.default_custom_managed_rule_groups_regional
+      ) :
+      []
     )
   )
 }
