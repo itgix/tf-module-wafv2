@@ -44,17 +44,43 @@ resource "aws_wafv2_rule_group" "custom_rule_group_global" {
         }
       }
       statement {
-        size_constraint_statement {
-          comparison_operator = rule.value.comparison_operator
-          size                = rule.value.size
-
-          field_to_match {
-            body {}
+        dynamic "label_match_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "label_match" && length(coalesce(rule.value.label_match, [])) == 1 ? coalesce(rule.value.label_match, []) : []
+          content {
+            scope = coalesce(label_match_statement.value.scope, "LABEL")
+            key   = label_match_statement.value.key
           }
+        }
 
-          text_transformation {
-            priority = 0
-            type     = rule.value.transform
+        dynamic "or_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "label_match" && length(coalesce(rule.value.label_match, [])) > 1 ? [1] : []
+          content {
+            dynamic "statement" {
+              for_each = coalesce(rule.value.label_match, [])
+              content {
+                label_match_statement {
+                  scope = coalesce(statement.value.scope, "LABEL")
+                  key   = statement.value.key
+                }
+              }
+            }
+          }
+        }
+
+        dynamic "size_constraint_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "size_constraint" ? [1] : []
+          content {
+            comparison_operator = rule.value.comparison_operator
+            size                = rule.value.size
+
+            field_to_match {
+              body {}
+            }
+
+            text_transformation {
+              priority = 0
+              type     = coalesce(rule.value.transform, "NONE")
+            }
           }
         }
       }
@@ -109,17 +135,43 @@ resource "aws_wafv2_rule_group" "custom_rule_group_regional" {
       }
 
       statement {
-        size_constraint_statement {
-          comparison_operator = rule.value.comparison_operator
-          size                = rule.value.size
-
-          field_to_match {
-            body {}
+        dynamic "label_match_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "label_match" && length(coalesce(rule.value.label_match, [])) == 1 ? coalesce(rule.value.label_match, []) : []
+          content {
+            scope = coalesce(label_match_statement.value.scope, "LABEL")
+            key   = label_match_statement.value.key
           }
+        }
 
-          text_transformation {
-            priority = 0
-            type     = rule.value.transform
+        dynamic "or_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "label_match" && length(coalesce(rule.value.label_match, [])) > 1 ? [1] : []
+          content {
+            dynamic "statement" {
+              for_each = coalesce(rule.value.label_match, [])
+              content {
+                label_match_statement {
+                  scope = coalesce(statement.value.scope, "LABEL")
+                  key   = statement.value.key
+                }
+              }
+            }
+          }
+        }
+
+        dynamic "size_constraint_statement" {
+          for_each = coalesce(rule.value.rule_type, "size_constraint") == "size_constraint" ? [1] : []
+          content {
+            comparison_operator = rule.value.comparison_operator
+            size                = rule.value.size
+
+            field_to_match {
+              body {}
+            }
+
+            text_transformation {
+              priority = 0
+              type     = coalesce(rule.value.transform, "NONE")
+            }
           }
         }
       }
