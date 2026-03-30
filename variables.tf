@@ -204,7 +204,7 @@ variable "custom_waf_rules" {
 }
 
 variable "custom_managed_waf_rule_groups" {
-  description = "Explicit rule group ARNs to attach on the Web ACL. When [] and custom_waf_rules is non-empty, the module attaches its own rule group. When [] and custom_waf_rules is empty, no custom rule group is created or attached."
+  description = "Rule groups to attach on the Web ACL by ARN (in addition to any module-managed attachment). Use attach_module_custom_rule_group_to_web_acl to also reference the rule group this module builds from custom_waf_rules."
   type = list(object({
     name                    = string
     priority                = number
@@ -213,6 +213,18 @@ variable "custom_managed_waf_rule_groups" {
     rules_override_to_count = list(string)
   }))
   default = []
+}
+
+variable "attach_module_custom_rule_group_to_web_acl" {
+  type        = bool
+  default     = true
+  description = "When true, adds CustomManagedRuleSetGlobal / CustomManagedRuleSetRegional on the Web ACL when the module creates that rule group (custom_waf_rules non-empty). When false, [] custom_managed_waf_rule_groups means no such rule — only entries in custom_managed_waf_rule_groups are attached."
+}
+
+variable "module_custom_rule_group_web_acl_priority" {
+  type        = number
+  default     = 1
+  description = "Web ACL priority for the module-managed rule group when attach_module_custom_rule_group_to_web_acl is true."
 }
 
 variable "rate_limit_rules" {

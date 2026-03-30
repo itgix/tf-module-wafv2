@@ -13,30 +13,6 @@ locals {
 
   rate_limit_rules_for_acl = var.rate_limit_rules
 
-  default_custom_managed_rule_groups_cloudfront = (
-    var.cloudfront_true && (try(length(aws_wafv2_rule_group.custom_rule_group_global), 0) > 0) ? [
-      {
-        name                    = "CustomManagedRuleSetGlobal"
-        priority                = 1
-        action                  = "none"
-        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_global[*].arn)
-        rules_override_to_count = []
-      }
-    ] : []
-  ) #
-
-  default_custom_managed_rule_groups_regional = (
-    var.application_true && (try(length(aws_wafv2_rule_group.custom_rule_group_regional), 0) > 0) ? [
-      {
-        name                    = "CustomManagedRuleSetRegional"
-        priority                = 1
-        action                  = "none"
-        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_regional[*].arn)
-        rules_override_to_count = []
-      }
-    ] : []
-  ) #
-
   filtered_custom_managed_rule_groups = [
     for r in var.custom_managed_waf_rule_groups : r
     if(
@@ -45,19 +21,44 @@ locals {
     )
   ] #
 
-  # Empty custom_managed_waf_rule_groups: only auto-attach the module-managed rule group when custom_waf_rules
-  # is non-empty (otherwise no CustomManagedRuleSet* on the Web ACL and no aws_wafv2_rule_group created).
-  effective_custom_managed_waf_rule_groups = (
-    length(local.filtered_custom_managed_rule_groups) > 0 ?
-    local.filtered_custom_managed_rule_groups :
+  # Optional attachment of the module-built rule group (set attach_module_custom_rule_group_to_web_acl = true).
+  module_managed_web_acl_rule_group_refs = concat(
     (
-      length(var.custom_waf_rules) > 0 ?
-      (
-        var.web_acl_scope == "CLOUDFRONT" ?
-        local.default_custom_managed_rule_groups_cloudfront :
-        local.default_custom_managed_rule_groups_regional
-      ) :
-      []
-    )
+      var.attach_module_custom_rule_group_to_web_acl &&
+      length(var.custom_waf_rules) > 0 &&
+      var.waf_enabled &&
+      var.cloudfront_true &&
+      var.web_acl_scope == "CLOUDFRONT" &&
+      length(aws_wafv2_rule_group.custom_rule_group_global) > 0
+      ) ? [
+      {
+        name                    = "CustomManagedRuleSetGlobal"
+        priority                = var.module_custom_rule_group_web_acl_priority
+        action                  = "none"
+        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_global[*].arn)
+        rules_override_to_count = []
+      }
+    ] : [],
+    (
+      var.attach_module_custom_rule_group_to_web_acl &&
+      length(var.custom_waf_rules) > 0 &&
+      var.waf_enabled &&
+      var.application_true &&
+      var.web_acl_scope == "REGIONAL" &&
+      length(aws_wafv2_rule_group.custom_rule_group_regional) > 0
+      ) ? [
+      {
+        name                    = "CustomManagedRuleSetRegional"
+        priority                = var.module_custom_rule_group_web_acl_priority
+        action                  = "none"
+        rule_group_arn          = one(aws_wafv2_rule_group.custom_rule_group_regional[*].arn)
+        rules_override_to_count = []
+      }
+    ] : []
+  )
+
+  effective_custom_managed_waf_rule_groups = concat(
+    local.filtered_custom_managed_rule_groups,
+    local.module_managed_web_acl_rule_group_refs
   )
 }
