@@ -1,10 +1,5 @@
 locals {
-  # Filter out BotControlRuleSet from managed groups when allow_aws_verified_bots_before_geo is true
-  # to avoid attaching the same managed group twice. No automatic priority shifting — callers set explicit priorities.
-  aws_managed_waf_rule_groups_for_acl = var.allow_aws_verified_bots_before_geo ? [
-    for g in var.aws_managed_waf_rule_groups : g
-    if try(g.name, "") != "AWSManagedRulesBotControlRuleSet"
-  ] : var.aws_managed_waf_rule_groups
+  aws_managed_waf_rule_groups_for_acl = var.aws_managed_waf_rule_groups
 
   effective_custom_managed_waf_rule_groups_for_acl = local.effective_custom_managed_waf_rule_groups
 

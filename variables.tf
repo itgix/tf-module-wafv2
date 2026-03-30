@@ -83,40 +83,6 @@ variable "geo_rule_priority" {
   description = "Priority for the geo-match rule. Adjust to control evaluation order relative to other rules."
 }
 
-variable "allow_aws_verified_bots_before_geo" {
-  type        = bool
-  default     = false
-  description = <<-EOT
-    When true, adds Bot Control in count mode and an allow rule for verified bots.
-    Removes AWSManagedRulesBotControlRuleSet from aws_managed_waf_rule_groups if present to avoid attaching it twice.
-    Callers are responsible for setting non-conflicting priorities across all rules.
-  EOT
-}
-
-variable "bot_control_labeling_priority" {
-  type        = number
-  default     = 0
-  description = "Priority for the Bot Control labeling rule (only used when allow_aws_verified_bots_before_geo is true)."
-}
-
-variable "verified_bot_allow_priority" {
-  type        = number
-  default     = 1
-  description = "Priority for the allow-verified-bots rule (only used when allow_aws_verified_bots_before_geo is true)."
-}
-
-variable "waf_bot_control_inspection_level" {
-  type        = string
-  default     = "COMMON"
-  description = "Inspection level for the Bot Control managed rule group when allow_aws_verified_bots_before_geo is true. Use COMMON (lower cost) or TARGETED."
-
-  validation {
-    condition     = contains(["COMMON", "TARGETED"], var.waf_bot_control_inspection_level)
-    error_message = "waf_bot_control_inspection_level must be COMMON or TARGETED."
-  }
-}
-
-
 variable "aws_managed_waf_rule_groups" {
   type = list(any)
   default = [
@@ -196,6 +162,7 @@ variable "custom_waf_rules" {
 }
 
 variable "custom_managed_waf_rule_groups" {
+  description = "Explicit rule group references for the Web ACL. When empty, the module only auto-attaches the built-in regional/global rule group if custom_waf_rules is non-empty (so an empty custom list does not add CustomManagedRuleSet* by default)."
   type = list(object({
     name                    = string
     priority                = number
