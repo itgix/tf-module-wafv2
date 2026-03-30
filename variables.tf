@@ -160,7 +160,7 @@ variable "custom_waf_rules" {
     name                = string
     priority            = number
     action              = string # "allow", "block", or "count"
-    rule_type           = optional(string, "size_constraint")
+    rule_type           = optional(string, "size_constraint", "label_match")
     comparison_operator = optional(string)
     size                = optional(number)
     transform           = optional(string, "NONE")
