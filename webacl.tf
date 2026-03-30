@@ -223,6 +223,16 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
           name        = rule.value.name
           vendor_name = "AWS"
 
+          # Required for AWSManagedRulesBotControlRuleSet (optional inspection_level on the group object, default COMMON).
+          dynamic "managed_rule_group_configs" {
+            for_each = rule.value.name == "AWSManagedRulesBotControlRuleSet" ? [try(rule.value.inspection_level, "COMMON")] : []
+            content {
+              aws_managed_rules_bot_control_rule_set {
+                inspection_level = managed_rule_group_configs.value
+              }
+            }
+          }
+
           dynamic "rule_action_override" {
             for_each = [for rule_override in try(rule.value.rules_override_to_count, []) : rule_override]
 
