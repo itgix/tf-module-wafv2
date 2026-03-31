@@ -1,7 +1,7 @@
 resource "aws_wafv2_web_acl" "wafv2_web_acl" {
   count       = var.waf_enabled ? 1 : 0
   name        = "${var.project}-${var.env}-${var.waf_attachment_type}-security"
-  description = "Geo-Location blocking and Web Application Security firewall"
+  description = "Web Application Firewall"
   scope       = var.web_acl_scope
 
   default_action {
@@ -20,38 +20,6 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
     metric_name                = "WAF-Main"
     sampled_requests_enabled   = var.sampled_requests_enabled
-  }
-
-  dynamic "rule" {
-    for_each = var.geo_rule_enabled ? [1] : []
-    content {
-      name     = var.waf_geo_location_block_enforce == "block" ? "GEO-Blacklist-Country" : "GEO-Whitelist-Country"
-      priority = var.geo_rule_priority
-
-      action {
-        dynamic "allow" {
-          for_each = var.waf_geo_location_block_enforce == "allow" ? [""] : []
-          content {}
-        }
-
-        dynamic "block" {
-          for_each = var.waf_geo_location_block_enforce == "block" ? [""] : []
-          content {}
-        }
-      }
-
-      statement {
-        geo_match_statement {
-          country_codes = var.country_codes_match
-        }
-      }
-
-      visibility_config {
-        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
-        metric_name                = var.waf_geo_location_block_enforce == "block" ? "GEO-Blacklist-Country" : "GEO-Whitelist-Country"
-        sampled_requests_enabled   = var.sampled_requests_enabled
-      }
-    }
   }
 
   dynamic "rule" {

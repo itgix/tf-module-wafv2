@@ -29,12 +29,6 @@ variable "web_acl_scope" {
   description = "Scope of the AWS WAF Web ACL - REGIONAL for API Gateway/ALB and CLOUDFRONT for cloudfront"
 }
 
-variable "country_codes_match" {
-  type        = list(string)
-  description = "Country codes to enforce WAF rules on - example US, CA, etc - https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-type-geo-match.html"
-  default     = ["CU", "IR", "SY", "KP", "RU"] # default list of sanctioned contries
-}
-
 variable "web_acl_cloudwatch_enabled" {
   type        = bool
   description = "A boolean indicating whether the associated resource sends metrics to CloudWatch"
@@ -65,24 +59,6 @@ variable "waf_default_action" {
   description = "allow or block - default action of WAF when a request hasn't matched any rules"
 }
 
-variable "waf_geo_location_block_enforce" {
-  type        = string
-  default     = "block"
-  description = "allow or block - action to take on geo location list of countries"
-}
-
-variable "geo_rule_enabled" {
-  type        = bool
-  default     = true
-  description = "Whether to include the geo-match rule in the Web ACL. Disable when geo blocking is not needed."
-}
-
-variable "geo_rule_priority" {
-  type        = number
-  default     = 0
-  description = "Priority for the geo-match rule. Adjust to control evaluation order relative to other rules."
-}
-
 variable "aws_managed_waf_rule_groups" {
   type    = list(any)
   default = []
@@ -111,6 +87,7 @@ variable "custom_rules" {
                             label_match_statement, regex_match_statement, regex_pattern_set_reference_statement,
                             size_constraint_statement, sqli_match_statement, xss_match_statement,
                             rate_based_statement, and_statement, or_statement, not_statement.
+                            Geo allow/block lists: use geo_match_statement (see examples).
                             Logical statements (and/or/not) support up to 2 levels of nesting.
     Rate limiting: use statement.rate_based_statement (examples/custom-rules.tfvars).
     Use type = any (not list(any)) in root/wrapper modules: list(any) still requires every
