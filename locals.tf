@@ -9,5 +9,6 @@ locals {
     )
   ]
 
-  rate_limit_rules_for_acl = var.rate_limit_rules
+  # Includes rate limits via statement.rate_based_statement (there is no separate rate_limit_rules input).
+  custom_rules_for_acl = var.custom_rules
 }

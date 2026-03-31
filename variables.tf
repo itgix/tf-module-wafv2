@@ -84,7 +84,7 @@ variable "geo_rule_priority" {
 }
 
 variable "aws_managed_waf_rule_groups" {
-  type = list(any)
+  type    = list(any)
   default = []
 }
 
@@ -100,24 +100,20 @@ variable "custom_managed_waf_rule_groups" {
   default = []
 }
 
-variable "rate_limit_rules" {
-  description = "List of rate-based rules to add to the WAF Web ACL. Each rule tracks request rates and triggers the specified action when the limit is exceeded within the evaluation window."
-  type = list(object({
-    name                  = string
-    priority              = number
-    action                = string                 # "block", "count", or "captcha"
-    limit                 = number                 # max requests per evaluation window (min 100)
-    aggregate_key_type    = optional(string, "IP") # "IP", "FORWARDED_IP", or "CONSTANT"
-    evaluation_window_sec = optional(number, 300)  # 60, 120, 300, or 600
-    forwarded_ip_config = optional(object({
-      header_name       = string
-      fallback_behavior = string # "MATCH" or "NO_MATCH"
-    }))
-    scope_down_byte_match = optional(object({
-      search_string         = string
-      positional_constraint = string # "EXACTLY", "STARTS_WITH", "ENDS_WITH", "CONTAINS"
-      text_transformation   = optional(string, "NONE")
-    }))
-  }))
-  default = []
+variable "custom_rules" {
+  description = <<-EOT
+    List of custom WAF rules with full statement support. Each rule is a map with keys:
+      - name      (string)  Rule name
+      - priority  (number)  Rule priority (must be unique across all rules in the Web ACL)
+      - action    (string)  "allow", "block", "count", "captcha", or "challenge"
+      - statement (map)     Statement tree matching the Terraform aws_wafv2_web_acl rule statement schema.
+                            Supports: byte_match_statement, geo_match_statement, ip_set_reference_statement,
+                            label_match_statement, regex_match_statement, regex_pattern_set_reference_statement,
+                            size_constraint_statement, sqli_match_statement, xss_match_statement,
+                            rate_based_statement, and_statement, or_statement, not_statement.
+                            Logical statements (and/or/not) support up to 2 levels of nesting.
+    Rate limiting: use statement.rate_based_statement (examples/custom-rules.tfvars).
+  EOT
+  type        = list(any)
+  default     = []
 }
