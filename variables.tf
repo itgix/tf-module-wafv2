@@ -113,38 +113,6 @@ variable "aws_managed_waf_rule_groups" {
       priority = 6
       action   = "none"
     }
-    #{
-    #name     = "AWSManagedRulesUnixRuleSet"
-    #priority = 7
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesPHPRuleSet"
-    #priority = 8
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesWordPressRuleSet"
-    #priority = 9
-    #action   = "none"
-    #},
-    #// IP Reputation Rule groups 
-    #{
-    #name     = "AWSManagedRulesAmazonIpReputationList"
-    #priority = 10
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesAnonymousIpList"
-    #priority = 11
-    #action   = "none"
-    #},
-    #// Bot control rule group
-    #{
-    #name     = "AWSManagedRulesBotControlRuleSet"
-    #priority = 12
-    #action   = "none"
-    #}
   ]
 }
 
