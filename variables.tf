@@ -113,7 +113,9 @@ variable "custom_rules" {
                             rate_based_statement, and_statement, or_statement, not_statement.
                             Logical statements (and/or/not) support up to 2 levels of nesting.
     Rate limiting: use statement.rate_based_statement (examples/custom-rules.tfvars).
+    Use type = any (not list(any)) in root/wrapper modules: list(any) still requires every
+    element to share the same type; different statement shapes need a top-level any.
   EOT
-  type        = list(any)
+  type        = any
   default     = []
 }
