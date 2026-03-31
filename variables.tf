@@ -85,35 +85,7 @@ variable "geo_rule_priority" {
 
 variable "aws_managed_waf_rule_groups" {
   type = list(any)
-  default = [
-    // Baseline rule groups
-    {
-      name     = "AWSManagedRulesAdminProtectionRuleSet"
-      priority = 2
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesCommonRuleSet"
-      priority = 3
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesKnownBadInputsRuleSet"
-      priority = 4
-      action   = "none"
-    },
-    // Use-case specific rule groups
-    {
-      name     = "AWSManagedRulesLinuxRuleSet"
-      priority = 5
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesSQLiRuleSet"
-      priority = 6
-      action   = "none"
-    }
-  ]
+  default = []
 }
 
 variable "custom_managed_waf_rule_groups" {
