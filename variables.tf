@@ -148,63 +148,8 @@ variable "aws_managed_waf_rule_groups" {
   ]
 }
 
-variable "custom_waf_rules" {
-  description = <<-EOT
-    Rules evaluated inside the module-managed rule group (regional and/or CloudFront).
-    rule_type "size_constraint" (default) — body size limits; set comparison_operator and size.
-    rule_type "label_match" — match on WAF labels. Set label_match to one or more { key, scope } entries.
-    One entry becomes a single label_match_statement; two or more are combined with OR (or_statement).
-    Supply any label keys your stack uses (e.g. Bot Control labels after a count-mode rule on the Web ACL).
-  EOT
-  type = list(object({
-    name                = string
-    priority            = number
-    action              = string # "allow", "block", or "count"
-    rule_type           = optional(string, "size_constraint")
-    comparison_operator = optional(string)
-    size                = optional(number)
-    transform           = optional(string, "NONE")
-    label_match = optional(list(object({
-      scope = optional(string, "LABEL")
-      key   = string
-    })))
-  }))
-  default = []
-
-  validation {
-    condition = alltrue([
-      for r in var.custom_waf_rules :
-      contains(["size_constraint", "label_match"], coalesce(r.rule_type, "size_constraint"))
-    ])
-    error_message = "custom_waf_rules[*].rule_type must be size_constraint or label_match."
-  }
-
-  validation {
-    condition = alltrue([
-      for r in var.custom_waf_rules :
-      length(coalesce(r.label_match, [])) > 0 ? true : (
-        coalesce(r.rule_type, "size_constraint") != "size_constraint" ? true : (
-          try(r.comparison_operator, null) != null && try(r.size, null) != null
-        )
-      )
-    ])
-    error_message = "custom_waf_rules: size_constraint rules require comparison_operator and size (or set label_match for label_match rules)."
-  }
-
-  validation {
-    condition = alltrue([
-      for r in var.custom_waf_rules :
-      (
-        coalesce(r.rule_type, "size_constraint") != "label_match" &&
-        length(coalesce(r.label_match, [])) == 0
-      ) ? true : length(coalesce(r.label_match, [])) >= 1
-    ])
-    error_message = "custom_waf_rules: label_match rules require at least one label_match entry (key, optional scope)."
-  }
-}
-
 variable "custom_managed_waf_rule_groups" {
-  description = "Rule groups to attach on the Web ACL by ARN (in addition to any module-managed attachment). Use attach_module_custom_rule_group_to_web_acl to also reference the rule group this module builds from custom_waf_rules."
+  description = "Rule groups to attach on the Web ACL by ARN. ARNs must match the Web ACL scope (global for CLOUDFRONT, regional for REGIONAL)."
   type = list(object({
     name                    = string
     priority                = number
@@ -213,18 +158,6 @@ variable "custom_managed_waf_rule_groups" {
     rules_override_to_count = list(string)
   }))
   default = []
-}
-
-variable "attach_module_custom_rule_group_to_web_acl" {
-  type        = bool
-  default     = true
-  description = "When true, adds CustomManagedRuleSetGlobal / CustomManagedRuleSetRegional on the Web ACL when the module creates that rule group (custom_waf_rules non-empty). When false, [] custom_managed_waf_rule_groups means no such rule — only entries in custom_managed_waf_rule_groups are attached."
-}
-
-variable "module_custom_rule_group_web_acl_priority" {
-  type        = number
-  default     = 1
-  description = "Web ACL priority for the module-managed rule group when attach_module_custom_rule_group_to_web_acl is true."
 }
 
 variable "rate_limit_rules" {
@@ -247,16 +180,4 @@ variable "rate_limit_rules" {
     }))
   }))
   default = []
-}
-
-variable "cloudfront_true" {
-  type        = bool
-  default     = false
-  description = "When true, allows the CloudFront-scoped module rule group; it is only created if custom_waf_rules is non-empty."
-}
-
-variable "application_true" {
-  type        = bool
-  default     = false
-  description = "When true, allows the Regional module rule group; it is only created if custom_waf_rules is non-empty."
 }
