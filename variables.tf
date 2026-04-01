@@ -60,7 +60,7 @@ variable "waf_default_action" {
 }
 
 variable "aws_managed_waf_rule_groups" {
-  type    = list(any)
+  type    = any
   default = []
 }
 
