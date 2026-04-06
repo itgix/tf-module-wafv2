@@ -29,12 +29,6 @@ variable "web_acl_scope" {
   description = "Scope of the AWS WAF Web ACL - REGIONAL for API Gateway/ALB and CLOUDFRONT for cloudfront"
 }
 
-variable "country_codes_match" {
-  type        = list(string)
-  description = "Country codes to enforce WAF rules on - example US, CA, etc - https://docs.aws.amazon.com/waf/latest/developerguide/waf-rule-statement-type-geo-match.html"
-  default     = ["CU", "IR", "SY", "KP", "RU"] # default list of sanctioned contries
-}
-
 variable "web_acl_cloudwatch_enabled" {
   type        = bool
   description = "A boolean indicating whether the associated resource sends metrics to CloudWatch"
@@ -65,98 +59,13 @@ variable "waf_default_action" {
   description = "allow or block - default action of WAF when a request hasn't matched any rules"
 }
 
-variable "waf_geo_location_block_enforce" {
-  type        = string
-  default     = "block"
-  description = "allow or block - action to take on geo location list of countries"
-}
-
-variable "rules" {
-  description = "List of WAF rules."
-  type        = any
-  default     = []
-}
-
-
 variable "aws_managed_waf_rule_groups" {
-  type = list(any)
-  default = [
-    // Baseline rule groups
-    {
-      name     = "AWSManagedRulesAdminProtectionRuleSet"
-      priority = 2
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesCommonRuleSet"
-      priority = 3
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesKnownBadInputsRuleSet"
-      priority = 4
-      action   = "none"
-    },
-    // Use-case specific rule groups
-    {
-      name     = "AWSManagedRulesLinuxRuleSet"
-      priority = 5
-      action   = "none"
-    },
-    {
-      name     = "AWSManagedRulesSQLiRuleSet"
-      priority = 6
-      action   = "none"
-    }
-    #{
-    #name     = "AWSManagedRulesUnixRuleSet"
-    #priority = 7
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesPHPRuleSet"
-    #priority = 8
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesWordPressRuleSet"
-    #priority = 9
-    #action   = "none"
-    #},
-    #// IP Reputation Rule groups 
-    #{
-    #name     = "AWSManagedRulesAmazonIpReputationList"
-    #priority = 10
-    #action   = "none"
-    #},
-    #{
-    #name     = "AWSManagedRulesAnonymousIpList"
-    #priority = 11
-    #action   = "none"
-    #},
-    #// Bot control rule group
-    #{
-    #name     = "AWSManagedRulesBotControlRuleSet"
-    #priority = 12
-    #action   = "none"
-    #}
-  ]
-}
-
-variable "custom_waf_rules" {
-  description = "List of custom WAF rules to include in the rule group"
-  type = list(object({
-    name                = string
-    priority            = number
-    action              = string              # "allow", "block", or "count"
-    comparison_operator = string              # e.g. "GT"
-    size                = number              # e.g. 15728640 (15MB)
-    transform           = optional(string, "NONE")
-  }))
+  type    = any
   default = []
 }
 
 variable "custom_managed_waf_rule_groups" {
+  description = "Rule groups to attach on the Web ACL by ARN. ARNs must match the Web ACL scope (global for CLOUDFRONT, regional for REGIONAL)."
   type = list(object({
     name                    = string
     priority                = number
@@ -167,14 +76,23 @@ variable "custom_managed_waf_rule_groups" {
   default = []
 }
 
-variable "cloudfront_true" {
-  type    = bool
-  default = false
-  description = "Whether to create the CloudFront scoped WAF rule group"
-}
-
-variable "application_true" {
-  type    = bool
-  default = false
-  description = "Whether to create the Regional scoped WAF rule group"
+variable "custom_rules" {
+  description = <<-EOT
+    List of custom WAF rules with full statement support. Each rule is a map with keys:
+      - name      (string)  Rule name
+      - priority  (number)  Rule priority (must be unique across all rules in the Web ACL)
+      - action    (string)  "allow", "block", "count", "captcha", or "challenge"
+      - statement (map)     Statement tree matching the Terraform aws_wafv2_web_acl rule statement schema.
+                            Supports: byte_match_statement, geo_match_statement, ip_set_reference_statement,
+                            label_match_statement, regex_match_statement, regex_pattern_set_reference_statement,
+                            size_constraint_statement, sqli_match_statement, xss_match_statement,
+                            rate_based_statement, and_statement, or_statement, not_statement.
+                            Geo allow/block lists: use geo_match_statement (see examples).
+                            Logical statements (and/or/not) support up to 2 levels of nesting.
+    Rate limiting: use statement.rate_based_statement (examples/custom-rules.tfvars).
+    Use type = any (not list(any)) in root/wrapper modules: list(any) still requires every
+    element to share the same type; different statement shapes need a top-level any.
+  EOT
+  type        = any
+  default     = []
 }
