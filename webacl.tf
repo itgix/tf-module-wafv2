@@ -52,7 +52,8 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
             for_each = rule.value.name == "AWSManagedRulesBotControlRuleSet" ? [try(rule.value.inspection_level, "COMMON")] : []
             content {
               aws_managed_rules_bot_control_rule_set {
-                inspection_level = managed_rule_group_configs.value
+                inspection_level        = managed_rule_group_configs.value
+                enable_machine_learning = try(rule.value.enable_machine_learning, false)
               }
             }
           }
