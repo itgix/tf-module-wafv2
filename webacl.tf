@@ -114,6 +114,82 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     }
   }
 
+  # Optional allow rule for IP prefix lists (IPv4 and/or IPv6 CIDRs)
+  dynamic "rule" {
+    for_each = local.ip_whitelist_active ? [1] : []
+    content {
+      name     = "${var.project}-${var.env}-ip-prefix-allowlist"
+      priority = var.ip_whitelist_rule_priority
+
+      action {
+        allow {}
+      }
+
+      statement {
+        dynamic "ip_set_reference_statement" {
+          for_each = local.ip_whitelist_v4_only ? [1] : []
+          content {
+            arn = aws_wafv2_ip_set.whitelist_ipv4[0].arn
+            dynamic "ip_set_forwarded_ip_config" {
+              for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+              content {
+                header_name       = ip_set_forwarded_ip_config.value.header_name
+                fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
+                position          = ip_set_forwarded_ip_config.value.position
+              }
+            }
+          }
+        }
+
+        dynamic "ip_set_reference_statement" {
+          for_each = local.ip_whitelist_v6_only ? [1] : []
+          content {
+            arn = aws_wafv2_ip_set.whitelist_ipv6[0].arn
+            dynamic "ip_set_forwarded_ip_config" {
+              for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+              content {
+                header_name       = ip_set_forwarded_ip_config.value.header_name
+                fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
+                position          = ip_set_forwarded_ip_config.value.position
+              }
+            }
+          }
+        }
+
+        dynamic "or_statement" {
+          for_each = local.ip_whitelist_both ? [1] : []
+          content {
+            dynamic "statement" {
+              for_each = [
+                { arn = aws_wafv2_ip_set.whitelist_ipv4[0].arn },
+                { arn = aws_wafv2_ip_set.whitelist_ipv6[0].arn },
+              ]
+              content {
+                ip_set_reference_statement {
+                  arn = statement.value.arn
+                  dynamic "ip_set_forwarded_ip_config" {
+                    for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+                    content {
+                      header_name       = ip_set_forwarded_ip_config.value.header_name
+                      fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
+                      position          = ip_set_forwarded_ip_config.value.position
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      visibility_config {
+        cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
+        metric_name                = "IP-Whitelist-Prefixes"
+        sampled_requests_enabled   = var.sampled_requests_enabled
+      }
+    }
+  }
+
   # Custom rules with full statement support
   dynamic "rule" {
     for_each = { for r in local.custom_rules_for_acl : r.name => r }

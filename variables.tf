@@ -96,3 +96,31 @@ variable "custom_rules" {
   type        = any
   default     = []
 }
+
+variable "ip_whitelist_prefixes" {
+  type        = list(string)
+  default     = []
+  description = "IPv4 CIDR prefixes to allow before other rules. Creates an WAFv2 IP set and an allow rule. Example: [\"10.0.0.0/8\", \"203.0.113.0/32\"]. Leave empty to disable."
+}
+
+variable "ip_whitelist_ipv6_prefixes" {
+  type        = list(string)
+  default     = []
+  description = "IPv6 CIDR prefixes to allow (separate WAF IP set; use together with or separate from ip_whitelist_prefixes)."
+}
+
+variable "ip_whitelist_rule_priority" {
+  type        = number
+  default     = 0
+  description = "Priority of the allow rule for ip_whitelist_prefixes / ip_whitelist_ipv6_prefixes. Lower numbers are evaluated first; use 0 so trusted clients skip managed rules when matched."
+}
+
+variable "ip_whitelist_forwarded_ip_config" {
+  type = object({
+    header_name       = string
+    fallback_behavior = string
+    position          = string
+  })
+  default     = null
+  description = "Optional. When the client IP is in a header (e.g. behind CloudFront/ALB), set this to use that header in the whitelist rule (same as ip_set_forwarded_ip_config on the IP set reference)."
+}
