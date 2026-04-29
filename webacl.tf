@@ -114,24 +114,44 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
     }
   }
 
-  # Optional allow rule for IP prefix lists (IPv4 and/or IPv6 CIDRs)
+  # IP prefix rules: named sets (ip_prefix_sets) + rules (action, priority, source vs forwarded IP)
   dynamic "rule" {
-    for_each = local.ip_whitelist_active ? [1] : []
+    for_each = var.waf_enabled ? { for r in var.ip_prefix_rules : r.name => r } : {}
+
     content {
-      name     = "${var.project}-${var.env}-ip-prefix-allowlist"
-      priority = var.ip_whitelist_rule_priority
+      name     = rule.value.name
+      priority = rule.value.priority
 
       action {
-        allow {}
+        dynamic "allow" {
+          for_each = lower(rule.value.action) == "allow" ? [1] : []
+          content {}
+        }
+        dynamic "block" {
+          for_each = lower(rule.value.action) == "block" ? [1] : []
+          content {}
+        }
+        dynamic "count" {
+          for_each = lower(rule.value.action) == "count" ? [1] : []
+          content {}
+        }
+        dynamic "captcha" {
+          for_each = lower(rule.value.action) == "captcha" ? [1] : []
+          content {}
+        }
+        dynamic "challenge" {
+          for_each = lower(rule.value.action) == "challenge" ? [1] : []
+          content {}
+        }
       }
 
       statement {
         dynamic "ip_set_reference_statement" {
-          for_each = local.ip_whitelist_v4_only ? [1] : []
+          for_each = local.ip_prefix_rule_is_v4_only[rule.value.name] ? [1] : []
           content {
-            arn = aws_wafv2_ip_set.whitelist_ipv4[0].arn
+            arn = aws_wafv2_ip_set.prefix_ipv4[rule.value.ip_set_key].arn
             dynamic "ip_set_forwarded_ip_config" {
-              for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+              for_each = rule.value.forwarded_ip_config != null ? [rule.value.forwarded_ip_config] : []
               content {
                 header_name       = ip_set_forwarded_ip_config.value.header_name
                 fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
@@ -142,11 +162,11 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
         }
 
         dynamic "ip_set_reference_statement" {
-          for_each = local.ip_whitelist_v6_only ? [1] : []
+          for_each = local.ip_prefix_rule_is_v6_only[rule.value.name] ? [1] : []
           content {
-            arn = aws_wafv2_ip_set.whitelist_ipv6[0].arn
+            arn = aws_wafv2_ip_set.prefix_ipv6[rule.value.ip_set_key].arn
             dynamic "ip_set_forwarded_ip_config" {
-              for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+              for_each = rule.value.forwarded_ip_config != null ? [rule.value.forwarded_ip_config] : []
               content {
                 header_name       = ip_set_forwarded_ip_config.value.header_name
                 fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
@@ -157,18 +177,19 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
         }
 
         dynamic "or_statement" {
-          for_each = local.ip_whitelist_both ? [1] : []
+          for_each = local.ip_prefix_rule_is_both_families[rule.value.name] ? [1] : []
           content {
             dynamic "statement" {
               for_each = [
-                { arn = aws_wafv2_ip_set.whitelist_ipv4[0].arn },
-                { arn = aws_wafv2_ip_set.whitelist_ipv6[0].arn },
+                { arn = aws_wafv2_ip_set.prefix_ipv4[rule.value.ip_set_key].arn },
+                { arn = aws_wafv2_ip_set.prefix_ipv6[rule.value.ip_set_key].arn },
               ]
+              iterator = ip_or_branch
               content {
                 ip_set_reference_statement {
-                  arn = statement.value.arn
+                  arn = ip_or_branch.value.arn
                   dynamic "ip_set_forwarded_ip_config" {
-                    for_each = var.ip_whitelist_forwarded_ip_config != null ? [var.ip_whitelist_forwarded_ip_config] : []
+                    for_each = rule.value.forwarded_ip_config != null ? [rule.value.forwarded_ip_config] : []
                     content {
                       header_name       = ip_set_forwarded_ip_config.value.header_name
                       fallback_behavior = ip_set_forwarded_ip_config.value.fallback_behavior
@@ -184,7 +205,7 @@ resource "aws_wafv2_web_acl" "wafv2_web_acl" {
 
       visibility_config {
         cloudwatch_metrics_enabled = var.web_acl_cloudwatch_enabled
-        metric_name                = "IP-Whitelist-Prefixes"
+        metric_name                = rule.value.name
         sampled_requests_enabled   = var.sampled_requests_enabled
       }
     }

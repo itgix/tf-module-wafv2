@@ -49,6 +49,8 @@ module "waf" {
 |-------------|---------------------------------------------------|
 | `webacl_arn` | ARN of the Web ACL, or `null` if `waf_enabled` is false |
 | `webacl_id`  | ID of the Web ACL, or `null` if disabled          |
+| `ip_prefix_ipv4_set_arns` | Map of `ip_prefix_sets` keys → IPv4 IP set ARNs |
+| `ip_prefix_ipv6_set_arns` | Map of `ip_prefix_sets` keys → IPv6 IP set ARNs |
 
 Wire `webacl_arn` into your association resource or CloudFront configuration.
 
@@ -89,6 +91,15 @@ Use `custom_managed_waf_rule_groups` to attach rule groups you already created i
 
 Rate limiting is expressed with `statement.rate_based_statement` (there is no separate variable for rate rules).
 
+### IP prefix sets and rules
+
+Use **`ip_prefix_sets`** to define one or more named collections of CIDRs (IPv4 and/or IPv6 per collection). Use **`ip_prefix_rules`** to attach Web ACL rules that reference a set by key. This supports multiple allow/block (or count/captcha/challenge) rules, different priorities, and per-rule choice of **immediate source IP** vs **forwarded header** (`forwarded_ip_config`; omit for source IP).
+
+- **Priorities** must stay unique across managed groups, custom groups, `ip_prefix_rules`, and **`custom_rules`**.
+- **`allow`** terminates evaluation for matching requests (later rules do not run).
+
+**Breaking change:** Earlier single-list inputs (`ip_whitelist_prefixes`, etc.) are removed. Define a set plus one or more rules instead (see README variable table).
+
 Nested logical statements are supported with a practical depth limit (about two levels) as implemented in the module.
 
 **Wrapper modules:** declare `custom_rules` with type `any` (not `list(any)`), because different rules use different statement shapes.
@@ -98,6 +109,41 @@ Nested logical statements are supported with a practical depth limit (about two 
 | File | What it shows |
 |------|----------------|
 | [`examples/custom-rules.tfvars`](examples/custom-rules.tfvars) | HCL snippets for `custom_rules`: IP sets, byte match, SQLi/XSS, size limits, regex, labels, AND/OR, rate-based with scope-down, regex pattern set, captcha/challenge. Copy the `custom_rules = [...]` block into your `.tfvars` or module input. |
+
+### IP prefix example (allow on X-Forwarded-For + block on source)
+
+```hcl
+ip_prefix_sets = {
+  trusted_office = {
+    ipv4_prefixes = ["203.0.113.0/24"]
+    description     = "Office egress"
+  }
+  known_bad = {
+    ipv4_prefixes = ["198.51.100.10/32"]
+  }
+}
+
+ip_prefix_rules = [
+  {
+    name        = "allow-trusted-via-xff"
+    priority    = 0
+    action      = "allow"
+    ip_set_key  = "trusted_office"
+    forwarded_ip_config = {
+      header_name       = "X-Forwarded-For"
+      fallback_behavior = "NO_MATCH"
+      position          = "FIRST"
+    }
+  },
+  {
+    name       = "block-bad-source-ip"
+    priority   = 1
+    action     = "block"
+    ip_set_key = "known_bad"
+    # no forwarded_ip_config → match immediate source IP
+  },
+]
+```
 
 ### Minimal custom rule (Terraform)
 
@@ -142,5 +188,7 @@ and attaches WAF logging plus a log resource policy. Tune retention with `waf_lo
 | `aws_managed_waf_rule_groups` | List of AWS managed groups (see above) |
 | `custom_managed_waf_rule_groups` | List of custom rule group ARNs |
 | `custom_rules` | List of custom rules (see above) |
+| `ip_prefix_sets` | Map of named IPv4/IPv6 CIDR collections (WAF IP sets) |
+| `ip_prefix_rules` | Rules referencing `ip_prefix_sets` (action, priority, optional forwarded IP header) |
 
 See [`variables.tf`](variables.tf) for full definitions.
