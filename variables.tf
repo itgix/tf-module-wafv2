@@ -97,30 +97,65 @@ variable "custom_rules" {
   default     = []
 }
 
-variable "ip_whitelist_prefixes" {
-  type        = list(string)
+variable "ip_prefix_sets" {
+  type = map(object({
+    ipv4_prefixes = optional(list(string), [])
+    ipv6_prefixes = optional(list(string), [])
+    description   = optional(string, null)
+  }))
+  default     = {}
+  description = <<-EOT
+    Named IP prefix collections (IPv4 and/or IPv6 CIDRs). Each key becomes up to two WAFv2 IP sets (one per address family with at least one prefix).
+    Rules reference sets by key via ip_prefix_rules.ip_set_key.
+  EOT
+  validation {
+    condition = alltrue([
+      for k, v in var.ip_prefix_sets :
+      length(coalesce(v.ipv4_prefixes, [])) > 0 || length(coalesce(v.ipv6_prefixes, [])) > 0
+    ])
+    error_message = "Each ip_prefix_sets entry must include at least one IPv4 or IPv6 prefix."
+  }
+}
+
+variable "ip_prefix_rules" {
+  type = list(object({
+    name       = string
+    priority   = number
+    action     = string
+    ip_set_key = string
+    forwarded_ip_config = optional(object({
+      header_name       = string
+      fallback_behavior = string
+      position          = string
+    }), null)
+  }))
   default     = []
-  description = "IPv4 CIDR prefixes to allow before other rules. Creates an WAFv2 IP set and an allow rule. Example: [\"10.0.0.0/8\", \"203.0.113.0/32\"]. Leave empty to disable."
-}
-
-variable "ip_whitelist_ipv6_prefixes" {
-  type        = list(string)
-  default     = []
-  description = "IPv6 CIDR prefixes to allow (separate WAF IP set; use together with or separate from ip_whitelist_prefixes)."
-}
-
-variable "ip_whitelist_rule_priority" {
-  type        = number
-  default     = 0
-  description = "Priority of the allow rule for ip_whitelist_prefixes / ip_whitelist_ipv6_prefixes. Lower numbers are evaluated first; use 0 so trusted clients skip managed rules when matched."
-}
-
-variable "ip_whitelist_forwarded_ip_config" {
-  type = object({
-    header_name       = string
-    fallback_behavior = string
-    position          = string
-  })
-  default     = null
-  description = "Optional. When the client IP is in a header (e.g. behind CloudFront/ALB), set this to use that header in the whitelist rule (same as ip_set_forwarded_ip_config on the IP set reference)."
+  description = <<-EOT
+    Web ACL rules that match traffic against an ip_prefix_sets entry. Use multiple rules to combine allow/block (and count/captcha/challenge) with source IP vs forwarded header evaluation.
+    - action: allow, block, count, captcha, or challenge (same as custom_rules).
+    - forwarded_ip_config: omit or null to use the immediate source IP. Set to use a header (e.g. X-Forwarded-For) like Terraform ip_set_forwarded_ip_config on the IP set reference.
+    Rule names must be unique across this list, custom_rules, and managed rules (WAF requires unique priorities and names per ACL).
+  EOT
+  validation {
+    condition     = length(distinct([for r in var.ip_prefix_rules : r.name])) == length(var.ip_prefix_rules)
+    error_message = "ip_prefix_rules: each rule name must be unique."
+  }
+  validation {
+    condition     = alltrue([for r in var.ip_prefix_rules : contains(keys(var.ip_prefix_sets), r.ip_set_key)])
+    error_message = "ip_prefix_rules: every ip_set_key must exist in ip_prefix_sets."
+  }
+  validation {
+    condition = alltrue([
+      for r in var.ip_prefix_rules :
+      length(lookup(var.ip_prefix_sets, r.ip_set_key).ipv4_prefixes) > 0 ||
+      length(lookup(var.ip_prefix_sets, r.ip_set_key).ipv6_prefixes) > 0
+    ])
+    error_message = "ip_prefix_rules: referenced ip_prefix_sets entry must have at least one prefix."
+  }
+  validation {
+    condition = alltrue([
+      for r in var.ip_prefix_rules : contains(["allow", "block", "count", "captcha", "challenge"], lower(r.action))
+    ])
+    error_message = "ip_prefix_rules.action must be allow, block, count, captcha, or challenge."
+  }
 }
