@@ -9,7 +9,7 @@ resource "aws_cloudwatch_log_group" "wafv2-cloudwatch-log-group" {
 resource "aws_wafv2_web_acl_logging_configuration" "wafv2-logging-configs" {
   count                   = var.aws_waf_logging_enabled ? 1 : 0
   log_destination_configs = [aws_cloudwatch_log_group.wafv2-cloudwatch-log-group[count.index].arn]
-  resource_arn            = length(aws_wafv2_web_acl.wafv2_web_acl) > 0 ? aws_wafv2_web_acl.wafv2_web_acl[count.index].arn : "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:placeholder_arn_when_count_is_0"
+  resource_arn            = length(aws_wafv2_web_acl.wafv2_web_acl) > 0 ? aws_wafv2_web_acl.wafv2_web_acl[count.index].arn : "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:placeholder_arn_when_count_is_0"
 }
 
 # CloudWatch Log Resource Policy - Define the policy to allow CloudWatch logs
